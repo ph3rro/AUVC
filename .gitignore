@@ -1,0 +1,11 @@
+build/
+bwsibot/
+install/
+log/
+logs/
+eeprom.bin
+src/example_custom_srv/
+src/bwsibot/
+src/tutorial/
+src/tutorial_ardusub/
+src/tutorial_virtualenvs/
