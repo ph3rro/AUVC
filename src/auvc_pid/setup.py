@@ -22,11 +22,12 @@ setup(
             'pytest',
         ],
     },
-    entry_points={
+    entry_points={  
         'console_scripts': [
             'depth_node = auvc_pid.depth_node:main',
             'publisher_node = auvc_pid.publisher_node:main',
-            'angular_pid = auvc_pid.angular_pid:main'
+            'angular_pid = auvc_pid.angular_pid:main',
+            'tracking_circle = auvc_pid.tracking_circle:main',
         ],
     },
 )

@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from mavros_msgs.msg import ManualControl
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, Float64MultiArray
 import time
 
 class PublisherNode(Node):
@@ -9,7 +9,8 @@ class PublisherNode(Node):
         super().__init__('publisher_node')
         
         self.x = 0.0
-        self.heave = 0.0
+        self.y = 0.0
+        self.z = 0.0
         self.angular = 0.0
 
         '''self.manual_pub publishes the movements so the auv can read them'''
@@ -17,7 +18,7 @@ class PublisherNode(Node):
         self.heave_sub = self.create_subscription(Float64, "/current_heave", self.heave_callback, 10)
         self.angular_sub = self.create_subscription(Float64, "/current_torque", self.angular_callback, 10)
         self.thrust_sub = self.create_subscription(Float64, '/forward', self.forward_callback, 10)   
-        
+        self.circle_sub = self.create_subscription(Float64MultiArray, '/circle_commands', self.circle_callback, 10)
         
         self.current_step_index = 0
         self.elapsed_time = 0.0
@@ -30,7 +31,7 @@ class PublisherNode(Node):
         #self.get_logger().info(f"facing heading: {self.target_heading} degrees")
 
     def heave_callback(self, msg):
-        self.heave = msg.data
+        self.z = msg.data
     
     def angular_callback(self, msg):
         self.angular = msg.data
@@ -38,21 +39,24 @@ class PublisherNode(Node):
     def forward_callback(self, msg):
         self.x = msg.data
 
+    def circle_callback(self, msg):
+        self.y = msg.data[0]
+        self.angular = msg.data[1]
+
     def manual_control_publisher(self):
         if self.elapsed_time > 300.0:
             self.send_neutral_command()
             print("timed out")
             return
-        
-        print(f" angular: {self.angular}")
-        print(f" depth: {self.heave}")
-        print(f" forward: {self.x}")
 
         # Publish the active step's joystick values
         msg = ManualControl()
+
+        self.get_logger().info(f"Y: {self.y}")
+        self.get_logger().info(f"R: {self.angular}")
         msg.x = float(self.x)
-        msg.y = float(0)
-        msg.z = float(self.heave)
+        msg.y = float(self.y)
+        msg.z = float(self.z)
         msg.r = float(self.angular)
         self.manual_pub.publish(msg)
 
