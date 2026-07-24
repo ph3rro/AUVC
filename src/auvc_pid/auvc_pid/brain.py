@@ -67,18 +67,6 @@ class brain_node(Node):
             self.publish_targets
         )
 
-        # Keyboard thread
-        keyboard = threading.Thread(
-            target=self.keyboard_listener,
-            daemon=True
-        )
-        keyboard.start()
-
-        self.get_logger().info("================================")
-        self.get_logger().info(" Brain Node Started")
-        self.get_logger().info(" Waiting for sensor data...")
-        self.get_logger().info(" Press ENTER to execute mission.")
-        self.get_logger().info("================================")
 
     # =====================================================
     # Callbacks
