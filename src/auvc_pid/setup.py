@@ -28,6 +28,7 @@ setup(
             'publisher_node = auvc_pid.publisher_node:main',
             'angular_pid = auvc_pid.angular_pid:main',
             'tracking_circle = auvc_pid.tracking_circle:main',
+            'line_node = auvc_pid.line_node:main',
         ],
     },
 )

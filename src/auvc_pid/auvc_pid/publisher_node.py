@@ -17,10 +17,10 @@ class PublisherNode(Node):
         self.manual_pub = self.create_publisher(ManualControl, "/manual_control", 10)
         self.heave_sub = self.create_subscription(Float64, "/current_heave", self.heave_callback, 10)
         self.angular_sub = self.create_subscription(Float64, "/current_torque", self.angular_callback, 10)
-        self.thrust_sub = self.create_subscription(Float64, "/forward", self.forward_callback, 10)   
+        #self.thrust_sub = self.create_subscription(Float64, "/forward", self.forward_callback, 10)   
         self.circle_sub = self.create_subscription(Float64MultiArray, "/circle_commands", self.circle_callback, 10)
-        
-        self.current_step_index = 0
+        self.line_sub = self.create_subscription(Float64MultiArray, "/line_commands", self.line_callback, 10)
+
         self.elapsed_time = 0.0
 
         # run loop at 20 hz
@@ -39,9 +39,13 @@ class PublisherNode(Node):
     def forward_callback(self, msg):
         self.x = msg.data
 
+    def line_callback(self, msg):
+        self.x = msg.data[0]
+        self.y = msg.data[1]
+
     def circle_callback(self, msg):
         self.y = msg.data[0]
-        self.get_logger().info(f"data[1]: {msg.data[1]}")
+        #self.get_logger().info(f"data[1]: {msg.data[1]}")
         self.angular = msg.data[1]
 
     def manual_control_publisher(self):
