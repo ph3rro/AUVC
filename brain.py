@@ -161,7 +161,7 @@ def main(args=None):
 
     rclpy.init(args=args)
 
-    node = BrainNode()
+    node = brain_node()
 
     try:
         rclpy.spin(node)
