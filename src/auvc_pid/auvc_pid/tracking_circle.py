@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
-from std_msgs.msg import Float64MultiArray, Float64
+from std_msgs.msg import Float64MultiArray, Float64, Int16
 import time
 from auvc_pid.pid_loop import *
 import numpy as np
@@ -13,17 +13,17 @@ class CircularNode(Node):
         self.desired_period = 4.0 #seconds
         self.target_radius = 2.0 #meters
 
-        #all angular velocity units are in radians per second
-        self.latest_angular_velocity = 0.0
-        self.target_angular_velocity = 2 * np.pi / self.desired_period
+        self.latest_heading = 0.0
+        self.previous_heading = 0.0
 
-        self.latest_centripital_acceleration = 0.0
-        self.target_centripital_acceleration = (self.target_angular_velocity ** 2) * self.target_radius
+        #all angular velocity units are in radians per second
+        self.latest_omega = 0.0
+        self.target_omega = -2 * np.pi / self.desired_period
 
         #publishes yaw, surge, and sway values to maintain the circle
-        self.circular_pub = self.create_publisher(Float64MultiArray, '/circle_commands', 10)
-        self.imu_sub = self.create_subscription(Imu, "/imu", self.imu_callback, 10)        
-        self.radius_sub = self.create_subscription(Float64, "/target_radius", self.radius_callback, 10)    
+        self.circular_pub = self.create_publisher(Float64MultiArray, "/circle_commands", 10)
+        self.radius_sub = self.create_subscription(Float64, "/target_radius", self.radius_callback, 10)
+        self.heading_sub = self.create_subscription(Int16, "/heading", self.heading_callback, 10)
 
         self.omega_errors = []
 
@@ -33,25 +33,29 @@ class CircularNode(Node):
         
         self.get_logger().info(f"Circling with radius: {self.target_radius} meters")
 
-    def imu_callback(self, msg):
-        self.latest_angular_velocity = msg.angular_velocity.z
+    def heading_callback(self, msg):
+        self.previous_heading = self.latest_heading
+        self.latest_heading = msg.data
 
     def radius_callback(self, msg):
         self.target_radius = msg.data
 
     def circle(self):
+        self.latest_omega = calculate_omega(self.latest_heading, self.previous_heading, self.timer_period)
         #update errors
-        omega_error = calculate_omega_error(self.latest_angular_velocity, self.target_angular_velocity)
+        omega_error = calculate_omega_error(self.latest_omega, self.target_omega)
         self.omega_errors.append(omega_error)
 
         #calculate values
-        yaw = -calculate_yaw(self.omega_errors, self.timer_period)
+        yaw = calculate_yaw(self.omega_errors, self.timer_period)
         sway = 75
 
         #print statements for debugging
+        print(f"current heading: {self.latest_heading}")
+        print(f"previous heading: {self.previous_heading}")
         print(f"yaw: {yaw}")
-        print(f"omega: {self.latest_angular_velocity}")
-        #print(f"error: {error}")
+        print(f"omega: {self.latest_omega}")
+        print(f"error: {omega_error}")
 
         # Publish the active step's joystick values
         msg = Float64MultiArray()
@@ -70,6 +74,10 @@ def main(args=None):
         if rclpy.ok():
             rclpy.shutdown()
 
+def calculate_omega(current_theta, previous_theta, dt):
+    omega_degrees = (current_theta - previous_theta) / dt
+    return omega_degrees * 2 * np.pi / 360
+
 def calculate_omega_error(current_omega, target_omega):
     return target_omega - current_omega
 
@@ -77,7 +85,7 @@ def calculate_yaw(errors, dt):
     Kp = 1.1
     Ki = 0.0
     Kd = 0.5
-    multiplier = 1
+    multiplier = 50
 
     pid_final = run_pid(errors, dt, Kp, Ki, Kd)
     yaw = pid_final * multiplier
