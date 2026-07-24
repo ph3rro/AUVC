@@ -5,7 +5,7 @@ from launch_ros.actions import Node
 launch:
 
 - node:
-    pkg: "tutorial"
+    pkg: "auvc_pid"
     exec: "publisher"
     name: "tutorial_publisher"
     namespace: ""
