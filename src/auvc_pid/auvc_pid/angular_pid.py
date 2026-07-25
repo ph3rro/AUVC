@@ -71,10 +71,8 @@ def main(args=None):
             rclpy.shutdown()
 
 def calculate_minimum_heading_error(current_heading, target_heading):
-    base_error = target_heading - current_heading
-    if (base_error > 180):
-        return current_heading - target_heading
-    return base_error
+    return (target_heading - current_heading + 180) % 360 - 180
+
 
 def calculate_yaw(errors, dt, angular_velocity):
     Kp = 1.1

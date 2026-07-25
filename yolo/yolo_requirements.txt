@@ -1,0 +1,10 @@
+ultralytics==8.4.107
+torch==2.13.0
+torchvision==0.28.0
+numpy==2.5.1
+opencv-python==5.0.0.93
+PyYAML==6.0.3
+# ONNX export (--export onnx)
+onnx==1.22.0
+onnxruntime==1.28.0
+onnxslim==0.1.94
