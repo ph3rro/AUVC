@@ -31,7 +31,7 @@ class DepthNode(Node):
         output = (measured_pressure - 101325) / (9.81 * 1000)
         return output
 
-    def calculate_heave(errors, dt):
+    def calculate_heave(self, errors, dt):
         Kp = 3.6
         Ki = 0.0
         Kd = 1.2

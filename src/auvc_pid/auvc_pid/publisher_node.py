@@ -11,7 +11,7 @@ class PublisherNode(Node):
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
-        self.angular = 0.0
+        self.angular = 5.0
 
         '''self.manual_pub publishes the movements so the auv can read them'''
         self.manual_pub = self.create_publisher(ManualControl, "/manual_control", 10)
