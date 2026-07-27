@@ -20,6 +20,9 @@ class PublisherNode(Node):
         #self.thrust_sub = self.create_subscription(Float64, "/forward", self.forward_callback, 10)   
         self.circle_sub = self.create_subscription(Float64MultiArray, "/circle_commands", self.circle_callback, 10)
         self.line_sub = self.create_subscription(Float64MultiArray, "/line_commands", self.line_callback, 10)
+        #self.pose_sub = self.create_subscription(Float64MultiArray, "/pose", self.pose_callback, 10)
+        self.bearing_sub = self.create_subscription(Float64, "/target_bearing", self.bearing_callback, 10)
+        self.height_sub = self.create_subscription(Float64, "/target_height", self.height_callback, 10)
 
         self.elapsed_time = 0.0
 
@@ -66,6 +69,19 @@ class PublisherNode(Node):
         self.manual_pub.publish(msg)
 
         self.elapsed_time += self.timer_period
+
+
+    '''def pose_callback(self, msg):
+        self.x = msg.data[0]
+        self.y = msg.data[1]
+        self.z = msg.data[2]
+        self.angular = msg.data[3]
+    '''
+    def bearing_callback(self, msg):
+        self.angular = msg.data
+
+    def height_callback(self, msg):
+        self.z = msg.data
 
     def send_neutral_command(self):
         msg = ManualControl()
