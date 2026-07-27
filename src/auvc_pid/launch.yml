@@ -6,8 +6,8 @@ launch:
 
 - node:
     pkg: "auvc_pid"
-    exec: "publisher"
-    name: "tutorial_publisher"
+    exec: "brain"
+    name: "auvc_pid_brain"
     namespace: ""
 
 - node:
