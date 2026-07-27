@@ -1,166 +1,122 @@
-#brain
-
-import threading
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float64
+from mavros_msgs.msg import ManualControl, OverrideRCIn
+from std_msgs.msg import Float64, Float64MultiArray
+import time
 
-
-class brain_node(Node):
-
+class BrainNode(Node):
     def __init__(self):
-        super().__init__("brain_node")
+        super().__init__('brain_node')
+        
+        self.x = 0.0
+        self.y = 0.0
+        self.z = 0.0
+        self.angular = 0.0
 
-        # ==========================
-        # Current State Variables
-        # ==========================
-        self.current_heading = 0.0
-        self.current_depth = 0.0
+        self.distance = None
+        self.fire = False
+        self.start_sequence = True
 
-        self.heading_received = False
-        self.depth_received = False
+        self.go_to_heading_value = 0.0
+        
 
-        # ==========================
-        # Target Setpoints
-        # ==========================
-        self.target_heading = 0.0
-        self.target_depth = 0.0
+        '''self.manual_pub publishes the movements so the auv can read them'''
+        self.manual_pub = self.create_publisher(ManualControl, "/manual_control", 10)
+        self.light_pub = self.create_publisher(OverrideRCIn, '/mavros/rc/override', 10)
 
-        # Desired dive depth (meters)
-        self.dive_depth = 2.0
+        self.heave_sub = self.create_subscription(Float64, "/current_heave", self.heave_callback, 10)
+        self.angular_sub = self.create_subscription(Float64, "/current_torque", self.angular_callback, 10)
+        #self.thrust_sub = self.create_subscription(Float64, "/forward", self.forward_callback, 10)   
+        self.circle_sub = self.create_subscription(Float64MultiArray, "/circle_commands", self.circle_callback, 10)
+        self.line_sub = self.create_subscription(Float64MultiArray, "/line_commands", self.line_callback, 10)
+        #self.pose_sub = self.create_subscription(Float64MultiArray, "/pose", self.pose_callback, 10)
+        self.bearing_sub = self.create_subscription(Float64, "/target_bearing", self.bearing_callback, 10)
+        self.height_sub = self.create_subscription(Float64, "/target_height", self.height_callback, 10)
+        # run loop at 20 hz
+        self.timer = self.create_timer(0.05, self.manual_control_publisher)
+        
+        #self.get_logger().info(f"approaching depth: {self.target_depth} meters")
+        #self.get_logger().info(f"facing heading: {self.target_heading} degrees")
 
-        # ==========================
-        # Subscribers
-        # ==========================
-        self.heading_sub = self.create_subscription(
-            Float64,
-            "/heading",
-            self.heading_callback,
-            10
-        )
+    def heave_callback(self, msg):
+        self.z = msg.data
+    
+    def angular_callback(self, msg):
+        self.angular = msg.data
 
-        self.depth_sub = self.create_subscription(
-            Float64,
-            "/depth",
-            self.depth_callback,
-            10
-        )
+    def forward_callback(self, msg):
+        self.x = msg.data
 
-        # ==========================
-        # Publishers
-        # ==========================
-        self.target_heading_pub = self.create_publisher(
-            Float64,
-            "/target_heading",
-            10
-        )
+    def line_callback(self, msg):
+        self.x = msg.data[0]
+        self.y = msg.data[1]
 
-        self.target_depth_pub = self.create_publisher(
-            Float64,
-            "/target_depth",
-            10
-        )
+    def circle_callback(self, msg):
+        self.y = msg.data[0]
+        #self.get_logger().info(f"data[1]: {msg.data[1]}")
+        self.angular = msg.data[1]
 
-        # Publish targets continuously
-        self.timer = self.create_timer(
-            0.1,
-            self.publish_targets
-        )
+    def manual_control_publisher(self):
 
+        override_msg = OverrideRCIn()
+        channels = [65535] * 8  # 65535 means "no change" for unlisted channels
 
-    # =====================================================
-    # Callbacks
-    # =====================================================
+        if (self.distance <= 1.0):
+            channels[4] = 1900
+            self.get_logger().info(f"Within range! FIREEEEEEEEEEE!")
+            self.fire = True
 
-    def heading_callback(self, msg):
-        self.current_heading = msg.data
-        self.heading_received = True
+        if(self.fire):
+            self.fire = False
+            channels[4] = 1100
 
-    def depth_callback(self, msg):
-        self.current_depth = msg.data
-        self.depth_received = True
+        override_msg.channels = channels
+        self.light_pub.publish(override_msg)
 
-    # =====================================================
-    # Publish desired targets
-    # =====================================================
+        if(self.start_sequence):
+            self.y = self.go_to_heading_value
+            if(self.go_to_heading_value <= 1):
+                self.x = 25.0
 
-    def publish_targets(self):
+        if(self.found_auv):
+            self.x = 50.0
+            self.angular = self.weird heading thing that aiden will put in
+        else:
+            self.x = 0.0
+            self.y = 0.0
+            self.angular = 15
 
-        if self.heading_received:
-            msg = Float64()
-            msg.data = self.target_heading
-            self.target_heading_pub.publish(msg)
+        
+        
+        msg = ManualControl()
+        msg.x = float(self.x)
+        msg.y = float(self.y)
+        msg.z = float(self.z)
+        msg.r = float(self.angular)
+        self.manual_pub.publish(msg)
 
-        if self.depth_received:
-            msg = Float64()
-            msg.data = self.target_depth
-            self.target_depth_pub.publish(msg)
+    def bearing_callback(self, msg):
+        self.angular = msg.data
 
-    # =====================================================
-    # Keyboard listener
-    # =====================================================
+    def height_callback(self, msg):
+        self.z = msg.data
 
-    def keyboard_listener(self):
+    def send_neutral_command(self):
+        msg = ManualControl()
+        msg.x, msg.y, msg.r = 0.0, 0.0, 0.0
+        msg.z = 0.0 
+        self.manual_pub.publish(msg)
 
-        while rclpy.ok():
-
-            input()
-
-            if not self.heading_received:
-                print("Waiting for heading...")
-                continue
-
-            if not self.depth_received:
-                print("Waiting for depth...")
-                continue
-
-            # Compute new heading
-            self.target_heading = (
-                self.current_heading + 180.0
-            ) % 360.0
-
-            # Dive to desired depth
-            self.target_depth = self.dive_depth
-
-            print("\n====================================")
-            print("MISSION STARTED")
-            print("------------------------------------")
-            print(f"Current Heading : {self.current_heading:.2f}°")
-            print(f"Target Heading  : {self.target_heading:.2f}°")
-            print("")
-            print(f"Current Depth   : {self.current_depth:.2f} m")
-            print(f"Target Depth    : {self.target_depth:.2f} m")
-            print("====================================\n")
-
-            self.get_logger().info(
-                f"Heading Target = {self.target_heading:.2f}"
-            )
-
-            self.get_logger().info(
-                f"Depth Target = {self.target_depth:.2f}"
-            )
-
-
-# ==========================================================
-# Main
-# ==========================================================
 
 def main(args=None):
-
     rclpy.init(args=args)
-
-    node = brain_node()
-
+    node = BrainNode()
     try:
         rclpy.spin(node)
-
     except KeyboardInterrupt:
-        pass
-
+        print("\nKeyboardInterrupt received, shutting down...")
     finally:
+        node.send_neutral_command()
         node.destroy_node()
-        rclpy.shutdown()
-
-
-if __name__ == "__main__":
-    main()
+        if rclpy.ok():
+            rclpy.shutdown()
