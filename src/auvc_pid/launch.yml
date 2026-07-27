@@ -61,3 +61,10 @@ launch:
     exec: "tracking_circle"
     name: "tracking_circle"
     namespace: ""
+- timer:
+    period: 5.0
+    - executable:
+        cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
+        name: "arm_auv"
+        output: "screen"
+        #uh idk if this works
