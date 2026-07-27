@@ -10,8 +10,54 @@ launch:
     name: "auvc_pid_brain"
     namespace: ""
 
+# ============================================
+# Depth Controller
+# ============================================
+
 - node:
-    pkg: "tutorial"
-    exec: "subscriber"
-    name: "tutorial_subscriber"
+    pkg: "auvc_pid"
+    exec: "depth_node"
+    name: "depth_node"
+    namespace: ""
+
+# ============================================
+# Heading PID Controller
+# ============================================
+
+- node:
+    pkg: "auvc_pid"
+    exec: "angular_pid"
+    name: "angular_pid"
+    namespace: ""
+
+# ============================================
+# Manual Publisher
+# ============================================
+
+- node:
+    pkg: "auvc_pid"
+    exec: "publisher_node"
+    name: "publisher_node"
+    namespace: ""
+
+# ============================================
+# Vision
+# ============================================
+
+- node:
+    pkg: "auvc_pid"
+    exec: "stream_images"
+    name: "stream_images"
+    namespace: ""
+
+- node:
+    pkg: "auvc_pid"
+    exec: "line_node"
+    name: "line_node"
+    namespace: ""
+
+- node:
+    pkg: "auvc_pid"
+    exec: "tracking_circle"
+    name: "tracking_circle"
     namespace: ""
