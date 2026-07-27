@@ -32,7 +32,7 @@ setup(
             'angular_pid = auvc_pid.angular_pid:main',
             'tracking_circle = auvc_pid.tracking_circle:main',
             'line_node = auvc_pid.line_node:main',
-            'stream_images = auvc_pid.stream_images:main'
+            'stream_images = auvc_pid.stream_images:main',
             'brain = auvc_pid.brain:main',
         ],
     },
