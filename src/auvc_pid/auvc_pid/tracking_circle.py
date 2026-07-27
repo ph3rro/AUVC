@@ -1,8 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Imu
 from std_msgs.msg import Float64MultiArray, Float64, Int16
-import time
 from auvc_pid.pid_loop import *
 import numpy as np
 
@@ -13,8 +11,8 @@ class CircularNode(Node):
         self.desired_period = 4.0 #seconds
         self.target_radius = 2.0 #meters
 
-        self.latest_heading = 0.0
-        self.previous_heading = 0.0
+        self.latest_heading = None
+        self.previous_heading = None
 
         #all angular velocity units are in radians per second
         self.latest_omega = 0.0
@@ -41,6 +39,9 @@ class CircularNode(Node):
         self.target_radius = msg.data
 
     def circle(self):
+        if ((self.latest_heading == None) or (self.previous_heading == None)):
+            return
+
         self.latest_omega = calculate_omega(self.latest_heading, self.previous_heading, self.timer_period)
         #update errors
         omega_error = calculate_omega_error(self.latest_omega, self.target_omega)
@@ -48,7 +49,7 @@ class CircularNode(Node):
 
         #calculate values
         yaw = calculate_yaw(self.omega_errors, self.timer_period)
-        sway = 75
+        sway = 100
 
         #print statements for debugging
         print(f"current heading: {self.latest_heading}")
@@ -82,14 +83,11 @@ def calculate_omega_error(current_omega, target_omega):
     return target_omega - current_omega
 
 def calculate_yaw(errors, dt):
-    Kp = 1.1
+    Kp = 20.0
     Ki = 0.0
-    Kd = 0.5
-    multiplier = 50
+    Kd = 0.0
 
-    pid_final = run_pid(errors, dt, Kp, Ki, Kd)
-    yaw = pid_final * multiplier
-
+    yaw = run_pid(errors, dt, Kp, Ki, Kd)
     return output_cap(yaw, 300)
 
 def output_cap(output, maximum):

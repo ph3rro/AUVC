@@ -1,4 +1,6 @@
 from setuptools import find_packages, setup
+import os
+from glob import glob
 
 package_name = 'auvc_pid'
 
@@ -10,6 +12,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*')) #idk if this is right but should be
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -28,6 +31,7 @@ setup(
             'publisher_node = auvc_pid.publisher_node:main',
             'angular_pid = auvc_pid.angular_pid:main',
             'tracking_circle = auvc_pid.tracking_circle:main',
+            'line_node = auvc_pid.line_node:main',
             'stream_images = auvc_pid.stream_images:main'
         ],
     },

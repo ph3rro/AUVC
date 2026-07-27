@@ -1,0 +1,17 @@
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+
+launch:
+
+- node:
+    pkg: "auvc_pid"
+    exec: "brain"
+    name: "auvc_pid_brain"
+    namespace: ""
+
+- node:
+    pkg: "tutorial"
+    exec: "subscriber"
+    name: "tutorial_subscriber"
+    namespace: ""
