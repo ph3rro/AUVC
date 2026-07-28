@@ -11,8 +11,8 @@ class AngularNode(Node):
         super().__init__('angular_node')
         
         #all heading units are in degrees
-        self.latest_heading = 0.0
-        self.target_heading = 245.0 
+        self.latest_heading = None
+        self.target_heading = None 
         self.latest_angular_velocity = 0.0
 
         '''self.manual_pub publishes the movements so the auv can read them'''
@@ -38,11 +38,11 @@ class AngularNode(Node):
     def theta_callback(self, msg):
         self.target_heading = msg.data
 
-    #def depth_callback(self, msg):
-        #self.target_depth = msg.data
-        #self.get_logger().info(f'New target depth: {self.target_depth:.2f} m')
-
     def turnToHeading(self):
+        if (self.latest_heading is None):
+            return
+        if (self.target_heading is None):
+            self.target_heading = calculate_minimum_heading_error(180, self.latest_heading)
         error = calculate_minimum_heading_error(self.latest_heading, self.target_heading)
         self.errors.append(error)
         

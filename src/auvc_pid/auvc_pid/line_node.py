@@ -10,9 +10,8 @@ class LineNode(Node):
 
         #heading is in degrees
         self.heading = None
-        self.previous_heading = None
         self.target_heading = 270
-        self.thrust = 100
+        self.thrust = 50
 
         #publishes surge and sway values to maintain the line
         self.line_pub = self.create_publisher(Float64MultiArray, "/line_commands", 10)
@@ -26,18 +25,17 @@ class LineNode(Node):
         self.get_logger().info(f"going {self.target_heading} degrees")
 
     def heading_callback(self, msg):
-        self.previous_heading = self.heading
         self.heading = msg.data
 
     def target_heading_callback(self, msg):
         self.target_heading = msg.data
 
     def line(self):
-        if ((self.heading == None) or (self.previous_heading == None)):
+        if (self.heading == None):
             return
 
         #calculate values
-        surge_sway = calculate_surge_sway(self.thrust, self.target_heading, self.previous_heading)
+        surge_sway = calculate_surge_sway(self.thrust, self.target_heading, self.heading)
 
         #print statements for debugging
         print(f"current heading: {self.heading}")
@@ -61,7 +59,11 @@ def main(args=None):
             rclpy.shutdown()
 
 def calculate_surge_sway(thrust, target_heading, heading):
-    theta = np.radians(target_heading - heading)
+    theta_degrees = target_heading - heading
+    if (theta_degrees > 180):
+        theta_degrees = -(360 - theta_degrees)
+
+    theta = np.radians(theta_degrees)
     surge = thrust * np.cos(theta)
     sway = thrust * np.sin(theta)
 
