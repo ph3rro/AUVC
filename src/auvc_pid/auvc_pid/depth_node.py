@@ -9,8 +9,8 @@ class DepthNode(Node):
         super().__init__('depth_node')
         
         self.latest_pressure = None
-        self.target_depth_range = [2.0, 3.0] #units in meters
-        self.target_depth = abs((self.target_depth_range[1] - self.target_depth_range[0]) / 2)
+        self.target_depth_range = [1.0, 2.0] #units in meters
+        self.target_depth = abs((self.target_depth_range[1] + self.target_depth_range[0]) / 2)
 
         '''self.manual_pub publishes the movements so the auv can read them'''
         self.heave_pub = self.create_publisher(Float64, '/current_heave', 10)
@@ -76,7 +76,7 @@ class DepthNode(Node):
         #print statements for debugging
         print(f"heave: {heave}")
         print(f"depth: {depth}")
-        #print(f"error: {error}")
+        print(f"error: {error}")
 
         # Publish the active step's joystick values
         msg = Float64()

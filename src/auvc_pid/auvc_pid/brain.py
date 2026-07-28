@@ -3,6 +3,7 @@ from rclpy.node import Node
 from mavros_msgs.msg import ManualControl, OverrideRCIn
 from std_msgs.msg import Float64, Float64MultiArray
 import time
+from auvc_pid.light_controller import *
 
 class BrainNode(Node):
     def __init__(self):
@@ -16,13 +17,15 @@ class BrainNode(Node):
         self.distance = None
         self.fire = False
         self.start_sequence = True
+        self.found_auv = False
 
         self.go_to_heading_value = 0.0
         
 
         '''self.manual_pub publishes the movements so the auv can read them'''
         self.manual_pub = self.create_publisher(ManualControl, "/manual_control", 10)
-        self.light_pub = self.create_publisher(OverrideRCIn, '/mavros/rc/override', 10)
+        self.lights = LightController(self)
+
 
         self.heave_sub = self.create_subscription(Float64, "/current_heave", self.heave_callback, 10)
         self.angular_sub = self.create_subscription(Float64, "/current_torque", self.angular_callback, 10)
@@ -42,7 +45,7 @@ class BrainNode(Node):
         self.z = msg.data
     
     def angular_callback(self, msg):
-        self.angular = msg.data
+        self.go_to_heading_value = msg.data
 
     def forward_callback(self, msg):
         self.x = msg.data
@@ -58,43 +61,46 @@ class BrainNode(Node):
 
     def manual_control_publisher(self):
 
-        override_msg = OverrideRCIn()
-        channels = [65535] * 8  # 65535 means "no change" for unlisted channels
+        self.lights.off()
+        print("test")
+        
+        #if (self.found_auv and self.distance <= 1.0):
+        #    self.x = -100
+        #    channels[4] = 1900
+        #    self.get_logger().info(f"Within range! FIREEEEEEEEEEE!")
+        #    self.fire = True
 
-        if (self.found_auv and self.distance <= 1.0):
-            self.x = -100
-            channels[4] = 1900
-            self.get_logger().info(f"Within range! FIREEEEEEEEEEE!")
-            self.fire = True
+        #if(self.fire):
+        #    self.fire = False
+        #    channels[4] = 1100
+        #    self.x = 0.0
 
-        if(self.fire):
-            self.fire = False
-            channels[4] = 1100
+        #override_msg.channels = channels
+        #self.light_pub.publish(override_msg)
+        
+        #if(self.start_sequence):
+            #self.angular = self.go_to_heading_value
+            #if(self.go_to_heading_value <= 1):
+            #    self.x = 25.0
 
-        override_msg.channels = channels
-        self.light_pub.publish(override_msg)
-
-        if(self.start_sequence):
-            self.y = self.go_to_heading_value
-            if(self.go_to_heading_value <= 1):
-                self.x = 25.0
-
-        if(self.found_auv and not(self.distance <= 1.0)):
-            self.x = 50.0
-            self.angular = self.weird heading thing that aiden will put in
-        else:
-            self.x = 0.0
-            self.y = 0.0
-            self.angular = 15
+        #if(self.found_auv and not(self.distance <= 1.0)):
+           # self.start_sequence = False
+           # self.x = 50.0
+           # #self.angular = self.weird heading thing that aiden will put in
+        #elif(not self.start_sequence):
+          #  self.x = 0.0
+           # self.y = 0.0
+          #  self.angular = 15
 
         
-        
-        msg = ManualControl()
-        msg.x = float(self.x)
-        msg.y = float(self.y)
-        msg.z = float(self.z)
-        msg.r = float(self.angular)
-        self.manual_pub.publish(msg)
+        #print(f"r: {self.angular}")
+        #print(f"z: {self.z}")
+        #msg = ManualControl()
+        #msg.x = float(self.x)
+        #msg.y = float(self.y)
+        #msg.z = float(self.z)
+        #msg.r = float(self.angular)
+        #self.manual_pub.publish(msg)
 
     def bearing_callback(self, msg):
         self.angular = msg.data

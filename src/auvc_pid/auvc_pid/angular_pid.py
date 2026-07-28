@@ -14,6 +14,7 @@ class AngularNode(Node):
         self.latest_heading = None
         self.target_heading = None 
         self.latest_angular_velocity = 0.0
+        self.set_target_heading = False
 
         '''self.manual_pub publishes the movements so the auv can read them'''
         self.angular_pub = self.create_publisher(Float64, '/current_torque', 10)
@@ -42,16 +43,17 @@ class AngularNode(Node):
         if (self.latest_heading is None):
             return
         if (self.target_heading is None):
-            self.target_heading = calculate_minimum_heading_error(180, self.latest_heading)
+            self.target_heading = calculate_minimum_heading_error(self.latest_heading, 180)
         error = calculate_minimum_heading_error(self.latest_heading, self.target_heading)
         self.errors.append(error)
         
         yaw = calculate_yaw(self.errors, self.timer_period, self.latest_angular_velocity)
 
         #print statements for debugging
+        print(f"target: {self.target_heading}")
         print(f"yaw: {yaw}")
         print(f"heading: {self.latest_heading}")
-        #print(f"error: {error}")
+        print(f"error: {error}")
 
         # Publish the active step's joystick values
         msg = Float64()
