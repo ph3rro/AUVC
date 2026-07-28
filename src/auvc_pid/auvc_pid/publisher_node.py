@@ -12,17 +12,18 @@ class PublisherNode(Node):
         self.y = 0.0
         self.z = 0.0
         self.angular = 0.0
+        self.target_relative_height = 0.0
 
         '''self.manual_pub publishes the movements so the auv can read them'''
         self.manual_pub = self.create_publisher(ManualControl, "/manual_control", 10)
         self.heave_sub = self.create_subscription(Float64, "/current_heave", self.heave_callback, 10)
         self.angular_sub = self.create_subscription(Float64, "/current_torque", self.angular_callback, 10)
-        #self.thrust_sub = self.create_subscription(Float64, "/forward", self.forward_callback, 10)   
+        self.thrust_sub = self.create_subscription(Float64, "/forward", self.forward_callback, 10)   
         self.circle_sub = self.create_subscription(Float64MultiArray, "/circle_commands", self.circle_callback, 10)
         self.line_sub = self.create_subscription(Float64MultiArray, "/line_commands", self.line_callback, 10)
         #self.pose_sub = self.create_subscription(Float64MultiArray, "/pose", self.pose_callback, 10)
         self.bearing_sub = self.create_subscription(Float64, "/target_bearing", self.bearing_callback, 10)
-        self.height_sub = self.create_subscription(Float64, "/target_height", self.height_callback, 10)
+        #self.height_sub = self.create_subscription(Float64, "/target_height", self.height_callback, 10)
 
         self.elapsed_time = 0.0
 
@@ -81,7 +82,7 @@ class PublisherNode(Node):
         self.angular = msg.data
 
     def height_callback(self, msg):
-        self.z = msg.data
+        self.target_relative_height = msg.data
 
     def send_neutral_command(self):
         msg = ManualControl()
