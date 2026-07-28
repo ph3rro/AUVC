@@ -63,6 +63,7 @@ launch:
     namespace: ""
 - timer:
     period: 5.0
+    actions: 
     - executable:
         cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
         name: "arm_auv"
