@@ -4,6 +4,12 @@ from sensor_msgs.msg import FluidPressure as Pressure
 from std_msgs.msg import Float64
 from auvc_pid.pid_loop import *
 
+T = 26.6666667 # celsius 
+WATER_DENSITY = 1000 * (1- (T+288.9414)/ (508929.2 * (T+68.12963)) * (T-3.9863)**2)
+G = 9.80665 
+ATMOSPHERIC = 101325.0
+
+
 class DepthNode(Node):
     def __init__(self):
         super().__init__('depth_node')
@@ -30,7 +36,7 @@ class DepthNode(Node):
         self.latest_pressure = msg.fluid_pressure
 
     def calculate_depth(self, measured_pressure):
-        output = (measured_pressure - 101325) / (9.81 * 1000)
+        output = (measured_pressure - ATMOSPHERIC) / (G * WATER_DENSITY)
         return output
 
     def calculate_heave(self, errors, dt):

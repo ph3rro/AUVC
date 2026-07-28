@@ -5,6 +5,8 @@ from sensor_msgs.msg import Image
 import os, threading, time, math, cv2, numpy as np
 from pupil_apriltags import Detector
 from std_msgs.msg import Float64MultiArray, Float64, Int16
+from sensor_msgs.msg import FluidPressure
+from auvc_pid.pid_loop import run_pid
 try:
     import torch
     from ultralytics import YOLO
@@ -14,10 +16,20 @@ except ImportError:
     # on apriltags alone until they are
     YOLO_AVAILABLE = False
 
+# True: use the highest-confidence YOLO box for controller targets.
+# False: use the selected AprilTag for controller targets.
+USING_YOLO = True
+
 # real world height in meters of each yolo class, used to turn a box height into a range.
 # a class that is missing here gets a range of nan, so fill this in per competition prop.
 # e.g. {0: 0.30, 1: 0.60}
-KNOWN_HEIGHTS_M = {}
+KNOWN_HEIGHTS_M = {0: 0.254}
+
+T = 26.6666667 # celsius 
+WATER_DENSITY = 1000 * (1- (T+288.9414)/ (508929.2 * (T+68.12963)) * (T-3.9863)**2)
+G = 9.80665 
+ATMOSPHERIC = 101325.0
+
 
 class VisionNode(Node):
     def __init__(self):
@@ -28,28 +40,40 @@ class VisionNode(Node):
 
         # single number each, straight into the yaw and depth controllers
         self.bearing_pub = self.create_publisher(Float64, "/target_bearing", 10)
-        self.height_pub = self.create_publisher(Float64, "/target_height", 10)
+        self.depth_pub = self.create_publisher(Float64, "/target_depth", 10)
+        self.pressure_sub = self.create_subscription(FluidPressure, "/pressure", self.calculate_depth, 10)
+        self.forward_pub = self.create_publisher(Float64, "/forward", 10)
 
         self.image_size = 256
         self.detector = Detector(families="tag36h11")
         self.latest_detections = []
 
-        self.declare_parameter("weights_path", "")
-        self.declare_parameter("yolo_threads", 2)
-        self.declare_parameter("yolo_rate", 2.0)
+        self.declare_parameter("weights_path", "/home/pherro/AUVC/yolo/weights/yolo26n_auv_1class_gray.onnx")
+        self.declare_parameter("yolo_threads", 3)
+        self.declare_parameter("yolo_rate", 5.0)
         self.declare_parameter("yolo_conf", 0.25)
+        self.declare_parameter("yolo_pixel_kp", 0.08)
+        self.declare_parameter("yolo_pixel_ki", 0.0)
+        self.declare_parameter("yolo_pixel_kd", 0.0)
+        self.declare_parameter("yolo_yaw_limit", 80.0)
 
         self.weights_path = self.get_parameter("weights_path").value
         self.yolo_threads = int(self.get_parameter("yolo_threads").value)
         self.yolo_period = 1.0 / float(self.get_parameter("yolo_rate").value)
         self.yolo_conf = float(self.get_parameter("yolo_conf").value)
+        self.yolo_pixel_kp = float(self.get_parameter("yolo_pixel_kp").value)
+        self.yolo_pixel_ki = float(self.get_parameter("yolo_pixel_ki").value)
+        self.yolo_pixel_kd = float(self.get_parameter("yolo_pixel_kd").value)
+        self.yolo_yaw_limit = float(self.get_parameter("yolo_yaw_limit").value)
+        self.yolo_pixel_errors = []
 
         self.declare_parameter("frame_width", 640)
         self.declare_parameter("frame_height", 480)
-        self.declare_parameter("camera_fx", 0.0)
-        self.declare_parameter("camera_fy", 0.0)
-        self.declare_parameter("camera_cx", 0.0)
-        self.declare_parameter("camera_cy", 0.0)
+        self.declare_parameter("camera_fx", 273.25)
+        self.declare_parameter("camera_fy", 261.76)
+        self.declare_parameter("camera_cx", 307.89)
+        self.declare_parameter("camera_cy", 153.84)
+
         self.declare_parameter("camera_hfov_deg", 80.0)
         self.declare_parameter("tag_size", 0.10)
         self.declare_parameter("target_tag_id", -1)
@@ -68,12 +92,18 @@ class VisionNode(Node):
         self.frame_lock = threading.Lock()
         self.latest_frame = None
         self.latest_boxes = []
+        self.using_yolo = USING_YOLO and YOLO_AVAILABLE and bool(self.weights_path)
 
-        if not YOLO_AVAILABLE:
-            self.get_logger().warn("torch/ultralytics not installed, running with apriltags only")
+        if not USING_YOLO:
+            self.get_logger().info("using apriltags for controller targets")
+        elif not YOLO_AVAILABLE:
+            self.get_logger().warn(
+                "yolo requested but torch/ultralytics is unavailable; using apriltags"
+            )
         elif not self.weights_path:
-            self.get_logger().warn("no weights_path parameter set, running with apriltags only")
+            self.get_logger().warn("yolo requested without weights_path; using apriltags")
         else:
+            self.get_logger().info("using yolo for controller targets")
             self.yolo_thread = threading.Thread(target=self.yolo_worker, daemon=True)
             self.yolo_thread.start()
 
@@ -155,6 +185,10 @@ class VisionNode(Node):
         # closest tag wins, and one with no pose solution sorts to the back
         return min(candidates, key=self.tag_range)
 
+    def calculate_depth(self, msg):
+        output = (msg.fluid_pressure - ATMOSPHERIC) / (G * WATER_DENSITY)
+        self.current_depth = output
+
     def camera_callback(self,msg):
         arr = np.frombuffer(msg.data, dtype=np.uint8).reshape(self.frame_height, self.frame_width, 3)
 
@@ -165,15 +199,18 @@ class VisionNode(Node):
         square = arr[row:row + side, col:col + side]
         resized = cv2.resize(square, (self.image_size, self.image_size), interpolation=cv2.INTER_AREA)
 
-        gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-        # four known corners and a known edge length give a far better range than any
-        # box height guess, so solve the tag pose outright wherever a tag is visible
-        self.latest_detections = self.detector.detect(
-            gray,
-            estimate_tag_pose=True,
-            camera_params=(self.fx, self.fy, self.cx, self.cy),
-            tag_size=self.tag_size,
-        )
+        if not self.using_yolo:
+            gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+            # four known corners and a known edge length give a far better range than any
+            # box height guess, so solve the tag pose outright wherever a tag is visible
+            self.latest_detections = self.detector.detect(
+                gray,
+                estimate_tag_pose=True,
+                camera_params=(self.fx, self.fy, self.cx, self.cy),
+                tag_size=self.tag_size,
+            )
+        else:
+            self.latest_detections = []
 
         with self.frame_lock:
             self.latest_frame = resized
@@ -209,16 +246,19 @@ class VisionNode(Node):
                 time.sleep(self.yolo_period)
                 continue
 
-            boxes = []
+            # only keep the highest-confidence detection for the controller
+            best = None
             for result in results:
                 for box in result.boxes:
-                    x1, y1, x2, y2 = box.xyxy[0].tolist()
-                    boxes.append([float(box.cls[0]), float(box.conf[0]), x1, y1, x2, y2])
+                    conf = float(box.conf[0])
+                    if best is None or conf > best[1]:
+                        x1, y1, x2, y2 = box.xyxy[0].tolist()
+                        best = [float(box.cls[0]), conf, x1, y1, x2, y2]
 
             with self.frame_lock:
-                self.latest_boxes = boxes
+                self.latest_boxes = [] if best is None else [best]
 
-            time.sleep(self.yolo_period)
+            # time.sleep(self.yolo_period)
 
     def pose_publisher(self):
         with self.frame_lock:
@@ -227,9 +267,9 @@ class VisionNode(Node):
 
         # [tag_count, box_count,
         #  (tag_id, cx, cy, yaw, pitch, x, y, z) per tag,
-        #  (class_id, conf, x1, y1, x2, y2, yaw, pitch, range) per box]
-        # angles are radians, + yaw is right of center and + pitch is below center.
-        # x/y/z and range are meters, nan when there is nothing to compute them from.
+        #  (class_id, conf, x1, y1, x2, y2, yaw, pitch, range) for the highest-conf box]
+        # box_count is 0 or 1. angles are radians, + yaw is right of center and + pitch is
+        # below center. x/y/z and range are meters, nan when unavailable.
         msg = Float64MultiArray()
         msg.data = [float(len(detections)), float(len(boxes))]
 
@@ -247,9 +287,46 @@ class VisionNode(Node):
             msg.data.extend([class_id, conf, x1, y1, x2, y2, yaw, pitch, distance])
 
         self.pose_pub.publish(msg)
-        self.publish_target(detections)
+        if self.using_yolo:
+            self.publish_yolo_target(boxes)
+        else:
+            self.publish_apriltag_target(detections)
 
-    def publish_target(self, detections):
+    def publish_yolo_target(self, boxes):
+        if not boxes:
+            return
+        
+        class_id, _, x1, y1, x2, y2 = boxes[0]
+        target_x = 0.5 * (x1 + x2)
+        pixel_error = target_x - (self.image_size / 2.0)
+        self.yolo_pixel_errors.append(pixel_error)
+        self.yolo_pixel_errors = self.yolo_pixel_errors[-200:]
+
+        # The YOLO controller now works directly in pixels instead of converting
+        # the horizontal pixel error to an angle.
+        # yaw, _, _, _ = self.pixel_to_angles(target_x, 0.5 * (y1 + y2))
+        yaw_command = run_pid(
+            self.yolo_pixel_errors,
+            self.timer_period,
+            self.yolo_pixel_kp,
+            self.yolo_pixel_ki,
+            self.yolo_pixel_kd,
+        )
+        yaw_command = max(-self.yolo_yaw_limit, min(self.yolo_yaw_limit, yaw_command))
+        self.bearing_pub.publish(Float64(data=yaw_command))
+
+        # Angle/range conversion remains here only for the depth setpoint.
+        _, pitch, distance = self.box_to_bearing_range(class_id, x1, y1, x2, y2)
+
+        # Keep /target_height in meters for both target sources. Positive means the
+        # target is above the camera. Range is unavailable until KNOWN_HEIGHTS_M has
+        # a real height for this YOLO class.
+        if math.isfinite(distance):
+            height = -distance * math.sin(pitch)
+            self.depth_pub.publish(Float64(data=self.current_depth-height))
+        self.forward_pub.publish(Float64(data=90.0))
+
+    def publish_apriltag_target(self, detections):
         # nothing is published while the tag is not in view, so a controller can tell
         # "no target" apart from "target dead ahead" by how long it has been since a message
         tag = self.select_tag(detections)
@@ -266,7 +343,7 @@ class VisionNode(Node):
         # the tag frame is x right, y down, z forward, so negating y gives a height
         # where positive means the tag sits above the camera
         height = -float(np.asarray(tag.pose_t).reshape(3)[1])
-        self.height_pub.publish(Float64(data=height))
+        self.depth_pub.publish(Float64(data=self.current_depth-height))
         
 
 
