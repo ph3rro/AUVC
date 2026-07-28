@@ -34,6 +34,7 @@ setup(
             'line_node = auvc_pid.line_node:main',
             'stream_images = auvc_pid.stream_images:main',
             'brain = auvc_pid.brain:main',
+            'logger_node = auvc_pid.logger_node:main',
         ],
     },
 )

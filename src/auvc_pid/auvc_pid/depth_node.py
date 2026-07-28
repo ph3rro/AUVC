@@ -9,10 +9,12 @@ class DepthNode(Node):
         super().__init__('depth_node')
         
         self.latest_pressure = None
-        self.target_depth = 2.0 #units in meters
+        self.target_depth_range = [2.0, 3.0] #units in meters
+        self.target_depth = abs((self.target_depth_range[1] - self.target_depth_range[0]) / 2)
 
         '''self.manual_pub publishes the movements so the auv can read them'''
         self.heave_pub = self.create_publisher(Float64, '/current_heave', 10)
+        self.depth_pub = self.create_publisher(Float64, '/current_depth', 10)
         self.pressure_sub = self.create_subscription(Pressure, "/pressure", self.pressure_callback, 10)
         self.depth_sub = self.create_subscription(Float64, "/target_depth", self.depth_callback, 10)    
         
@@ -80,6 +82,11 @@ class DepthNode(Node):
         msg = Float64()
         msg.data = heave
         self.heave_pub.publish(msg)
+
+        msg1 = Float64()
+        msg1.data = depth
+        self.depth_pub.publish(msg1)
+
 
 def main(args=None):
     rclpy.init(args=args)

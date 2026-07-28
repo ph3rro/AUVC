@@ -61,7 +61,8 @@ class BrainNode(Node):
         override_msg = OverrideRCIn()
         channels = [65535] * 8  # 65535 means "no change" for unlisted channels
 
-        if (self.distance <= 1.0):
+        if (self.found_auv and self.distance <= 1.0):
+            self.x = -100
             channels[4] = 1900
             self.get_logger().info(f"Within range! FIREEEEEEEEEEE!")
             self.fire = True
@@ -78,7 +79,7 @@ class BrainNode(Node):
             if(self.go_to_heading_value <= 1):
                 self.x = 25.0
 
-        if(self.found_auv):
+        if(self.found_auv and not(self.distance <= 1.0)):
             self.x = 50.0
             self.angular = self.weird heading thing that aiden will put in
         else:
