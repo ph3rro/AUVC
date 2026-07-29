@@ -41,7 +41,6 @@ class VisionNode(Node):
         # single number each, straight into the yaw and depth controllers
         self.bearing_pub = self.create_publisher(Float64, "/target_bearing", 10)
         self.depth_pub = self.create_publisher(Float64, "/target_depth", 10)
-        self.distance_pub = self.create_publisher(Float64, "/distance", 10)
         self.pressure_sub = self.create_subscription(FluidPressure, "/pressure", self.calculate_depth, 10)
         self.forward_pub = self.create_publisher(Float64, "/forward", 10)
         self.yolo_detected_pub = self.create_publisher(Bool, "/yolo_detected", 10)
@@ -333,7 +332,6 @@ class VisionNode(Node):
         # target is above the camera. Range is unavailable until KNOWN_HEIGHTS_M has
         # a real height for this YOLO class.
         if math.isfinite(distance):
-            self.distance_pub.publish(Float64(data=distance))
             height = -distance * math.sin(pitch)
             self.depth_pub.publish(Float64(data=self.current_depth-height))
         self.forward_pub.publish(Float64(data=90.0))
@@ -351,9 +349,6 @@ class VisionNode(Node):
 
         if tag.pose_t is None:
             return
-
-        distance = self.tag_range(tag)
-        self.distance_pub.publish(Float64(data=distance))
 
         # the tag frame is x right, y down, z forward, so negating y gives a height
         # where positive means the tag sits above the camera
