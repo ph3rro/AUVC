@@ -89,7 +89,7 @@ class BrainNode(Node):
         
         if(self.start_sequence):
             self.angular = self.go_to_heading_value
-            if(self.elapsed_time >= 5.0):
+            if(self.elapsed_time >= 3.0):
                 self.x = 25
 
         if(self.found_auv and not(self.distance <= 1.0)):
@@ -100,7 +100,7 @@ class BrainNode(Node):
         elif(not self.start_sequence):
             self.x = 0.0
             self.y = 0.0
-            self.angular = 15
+            self.angular = 25
         
 
         
