@@ -39,11 +39,12 @@ class AngularNode(Node):
     def theta_callback(self, msg):
         self.target_heading = msg.data
 
+
     def turnToHeading(self):
         if (self.latest_heading is None):
             return
         if (self.target_heading is None):
-            self.target_heading = calculate_minimum_heading_error(self.latest_heading, 180)
+            self.target_heading = calculate_target_heading(self.latest_heading)
         error = calculate_minimum_heading_error(self.latest_heading, self.target_heading)
         self.errors.append(error)
         
@@ -77,7 +78,7 @@ def calculate_minimum_heading_error(current_heading, target_heading):
 
 
 def calculate_yaw(errors, dt, angular_velocity):
-    Kp = 1.1
+    Kp = 2
     Ki = 0.0
     Kd = 0.5
     multiplier = 1
@@ -95,3 +96,7 @@ def calculate_yaw(errors, dt, angular_velocity):
 
     return yaw
 
+def calculate_target_heading(current_heading):
+    if (current_heading < 180):
+        return current_heading + 180
+    return current_heading - 180

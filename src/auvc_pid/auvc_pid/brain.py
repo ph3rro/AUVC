@@ -14,6 +14,8 @@ class BrainNode(Node):
         self.z = 0.0
         self.angular = 0.0
 
+        self.elapsed_time = 0.0
+
         self.distance = None
         self.fire = False
         self.start_sequence = True
@@ -60,28 +62,23 @@ class BrainNode(Node):
         self.angular = msg.data[1]
 
     def manual_control_publisher(self):
-
-        self.lights.off()
-        print("test")
         
-        #if (self.found_auv and self.distance <= 1.0):
-        #    self.x = -100
-        #    channels[4] = 1900
-        #    self.get_logger().info(f"Within range! FIREEEEEEEEEEE!")
-        #    self.fire = True
+        if (self.found_auv and self.distance <= 1.0):
+            self.x = -100
+            self.lights.full()
+            self.get_logger().info(f"Within range! FIREEEEEEEEEEE!")
+            self.fire = True
 
-        #if(self.fire):
-        #    self.fire = False
-        #    channels[4] = 1100
-        #    self.x = 0.0
-
-        #override_msg.channels = channels
-        #self.light_pub.publish(override_msg)
+        elif(self.fire):
+            self.fire = False
+            self.lights.off()
+            self.x = 0.0
         
-        #if(self.start_sequence):
-            #self.angular = self.go_to_heading_value
-            #if(self.go_to_heading_value <= 1):
-            #    self.x = 25.0
+        if(self.start_sequence):
+            self.angular = self.go_to_heading_value
+
+        if(self.start_sequence and self.elapsed_time >= 5.0):
+            self.x = 25
 
         #if(self.found_auv and not(self.distance <= 1.0)):
            # self.start_sequence = False
@@ -91,16 +88,21 @@ class BrainNode(Node):
           #  self.x = 0.0
            # self.y = 0.0
           #  self.angular = 15
+        
 
         
-        #print(f"r: {self.angular}")
-        #print(f"z: {self.z}")
-        #msg = ManualControl()
-        #msg.x = float(self.x)
-        #msg.y = float(self.y)
-        #msg.z = float(self.z)
-        #msg.r = float(self.angular)
-        #self.manual_pub.publish(msg)
+        print(f"r: {self.angular}")
+        print(f"z: {self.z}")
+        print(f"x: {self.x}")
+
+        msg = ManualControl()
+        msg.x = float(self.x)
+        msg.y = float(self.y)
+        msg.z = float(self.z)
+        msg.r = float(self.angular)
+        self.manual_pub.publish(msg)
+
+        self.elapsed_time += 0.05
 
     def bearing_callback(self, msg):
         self.angular = msg.data
