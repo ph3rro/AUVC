@@ -46,7 +46,8 @@ class LoggerNode(Node):
             '/auv/depth': 'std_msgs/msg/Float64',
             '/auv/heading': 'std_msgs/msg/Int16',
             '/auv/manualControl': 'mavros_msgs/msg/ManualControl',
-            '/auv/fire': 'std_msgs/msg/String'
+            '/auv/fire': 'std_msgs/msg/String',
+            '/auv/distance': 'std_msgs/msg/Float64',
         }
 
         # Register each topic schema with the bag writer.
@@ -73,7 +74,7 @@ class LoggerNode(Node):
         self.topic_subs['/auv/heading'] = self.create_subscription(Int16,'/heading', lambda msg: self.save_message('/auv/heading', msg), 10)
         self.topic_subs['/auv/manualControl'] = self.create_subscription(ManualControl,'/manual_control', lambda msg: self.save_message('/auv/manualControl', msg), 10)
         self.topic_subs['/auv/fire'] = self.create_subscription(String,'/fire_control', lambda msg: self.save_message('/auv/fire', msg), 10)
-
+        self.topic_subs['/auv/distance'] = self.create_subscription(Float64, '/distance', lambda msg:self.save_message('/auv/distance', msg), 10)
         self.get_logger().info('BlueROV Data Recorder initialized for specific telemetry topics.')
 
     def save_message(self, topic_name, msg):
