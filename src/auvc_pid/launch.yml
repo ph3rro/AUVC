@@ -54,17 +54,20 @@ launch:
     name: "stream_images"
     namespace: ""
 
-- node:
-    pkg: "auvc_pid"
-    exec: "line_node"
-    name: "line_node"
-    namespace: ""
 
-- node:
-    pkg: "auvc_pid"
-    exec: "tracking_circle"
-    name: "tracking_circle"
-    namespace: ""
+#- node:
+#    pkg: "auvc_pid"
+#    exec: "line_node"
+#    name: "line_node"
+#    namespace: ""
+
+#- node:
+ #   pkg: "auvc_pid"
+ #   exec: "tracking_circle"
+ #   name: "tracking_circle"
+ #   namespace: ""
+
+
 - timer:
     period: 5.0
     actions: #claude gave me this if theres any errors delete this maybe
