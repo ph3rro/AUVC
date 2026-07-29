@@ -3,7 +3,11 @@ from launch_ros.actions import Node
 
 
 launch:
-
+- node:
+    pkg: "rosmav"
+    exec: "bluerov2_hardware_interface"
+    name: "bluerov2_hardware_interface"
+    namespace: ""
 - node:
     pkg: "auvc_pid"
     exec: "brain"
