@@ -1,0 +1,46 @@
+rosbag2_bagfile_information:
+  version: 9
+  storage_identifier: mcap
+  duration:
+    nanoseconds: 22226236273
+  starting_time:
+    nanoseconds_since_epoch: 1785335268383552562
+  message_count: 879
+  topics_with_message_count:
+    - topic_metadata:
+        name: /auv/manualControl
+        type: mavros_msgs/msg/ManualControl
+        serialization_format: cdr
+        offered_qos_profiles:
+          []
+        type_description_hash: ""
+      message_count: 364
+    - topic_metadata:
+        name: /auv/heading
+        type: std_msgs/msg/Int16
+        serialization_format: cdr
+        offered_qos_profiles:
+          []
+        type_description_hash: ""
+      message_count: 111
+    - topic_metadata:
+        name: /auv/depth
+        type: std_msgs/msg/Float64
+        serialization_format: cdr
+        offered_qos_profiles:
+          []
+        type_description_hash: ""
+      message_count: 404
+  compression_format: ""
+  compression_mode: ""
+  relative_file_paths:
+    - mission_bag_20260729_102748_0.mcap
+  files:
+    - path: mission_bag_20260729_102748_0.mcap
+      starting_time:
+        nanoseconds_since_epoch: 1785335268383552562
+      duration:
+        nanoseconds: 22226236273
+      message_count: 1758
+  custom_data: ~
+  ros_distro: jazzy
