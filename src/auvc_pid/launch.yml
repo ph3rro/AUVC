@@ -14,9 +14,10 @@ launch:
     name: "auvc_pid_brain"
     namespace: ""
 
-# ============================================
-# Depth Controller
-# ============================================
+
+
+
+
 
 - node:
     pkg: "auvc_pid"
@@ -24,9 +25,10 @@ launch:
     name: "depth_node"
     namespace: ""
 
-# ============================================
-# Heading PID Controller
-# ============================================
+
+
+
+
 
 - node:
     pkg: "auvc_pid"
@@ -34,9 +36,10 @@ launch:
     name: "angular_pid"
     namespace: ""
 
-# ============================================
-# Manual Publisher
-# ============================================
+
+
+
+
 
 - node:
     pkg: "auvc_pid"
@@ -44,9 +47,10 @@ launch:
     name: "publisher_node"
     namespace: ""
 
-# ============================================
-# Vision
-# ============================================
+
+
+
+
 
 - node:
     pkg: "auvc_pid"
