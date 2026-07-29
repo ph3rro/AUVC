@@ -4,7 +4,7 @@ from std_msgs.msg import Float64, Float64MultiArray
 from sensor_msgs.msg import Image
 import os, threading, time, math, cv2, numpy as np
 from pupil_apriltags import Detector
-from std_msgs.msg import Float64MultiArray, Float64, Int16
+from std_msgs.msg import Float64MultiArray, Float64, Int16, Bool
 from sensor_msgs.msg import FluidPressure
 from auvc_pid.pid_loop import run_pid
 try:
@@ -43,7 +43,8 @@ class VisionNode(Node):
         self.depth_pub = self.create_publisher(Float64, "/target_depth", 10)
         self.pressure_sub = self.create_subscription(FluidPressure, "/pressure", self.calculate_depth, 10)
         self.forward_pub = self.create_publisher(Float64, "/forward", 10)
-
+        self.yolo_detected_pub = self.create_publisher(Bool, "/yolo_detected", 10)
+        
         self.image_size = 256
         self.detector = Detector(families="tag36h11")
         self.latest_detections = []
@@ -77,13 +78,14 @@ class VisionNode(Node):
         self.declare_parameter("camera_hfov_deg", 80.0)
         self.declare_parameter("tag_size", 0.10)
         self.declare_parameter("target_tag_id", -1)
+        self.declare_parameter("yolo_detected_timeout", 1.5)
 
         self.frame_width = int(self.get_parameter("frame_width").value)
         self.frame_height = int(self.get_parameter("frame_height").value)
         self.tag_size = float(self.get_parameter("tag_size").value)
         # -1 follows whichever tag is closest, otherwise only this id is followed
         self.target_tag_id = int(self.get_parameter("target_tag_id").value)
-
+        self.yolo_detected_timeout = float(self.get_parameter("yolo_detected_timeout").value)
         self.setup_intrinsics()
 
         # leave cores free for yolo and the rest of the stack on the pi
@@ -110,8 +112,8 @@ class VisionNode(Node):
         # run loop at 20 hz
         self.timer_period = 0.05
         self.timer = self.create_timer(self.timer_period, self.pose_publisher)
-        #self.img_count = 0
-        #self.imgs = np.zeros((200, 480, 640, 3))
+        
+        self.yolo_detected = False
 
     def setup_intrinsics(self):
         fx = float(self.get_parameter("camera_fx").value)
@@ -257,7 +259,15 @@ class VisionNode(Node):
 
             with self.frame_lock:
                 self.latest_boxes = [] if best is None else [best]
-
+            
+            if best is not None:
+                self.yolo_detected = True
+                self.yolo_detected_time = time.perf_counter()
+                self.yolo_detected_pub.publish(Bool(data=True))
+            else:
+                if (time.perf_counter() - self.yolo_detected_time) > self.yolo_detected_timeout:
+                    self.yolo_detected = False
+                    self.yolo_detected_pub.publish(Bool(data=False))
             # time.sleep(self.yolo_period)
 
     def pose_publisher(self):
