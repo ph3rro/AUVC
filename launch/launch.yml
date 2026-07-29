@@ -8,6 +8,13 @@ launch:
     exec: "bluerov2_hardware_interface"
     name: "bluerov2_hardware_interface"
     namespace: ""
+
+- node:
+    pkg: "rosmav"
+    exec: "bluerov2_camera_interface"
+    name: "bluerov2_camera_interface"
+    namespace: ""
+
 - node:
     pkg: "auvc_pid"
     exec: "brain"
@@ -58,6 +65,14 @@ launch:
     name: "stream_images"
     namespace: ""
 
+- timer:
+    period: 5.0
+    actions: #claude gave me this if theres any errors delete this maybe
+    - executable:
+        cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
+        name: "arm_auv"
+        output: "screen"
+        #uh idk if this works
 
 #- node:
 #    pkg: "auvc_pid"
@@ -72,11 +87,3 @@ launch:
  #   namespace: ""
 
 
-- timer:
-    period: 5.0
-    actions: #claude gave me this if theres any errors delete this maybe
-    - executable:
-        cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
-        name: "arm_auv"
-        output: "screen"
-        #uh idk if this works
