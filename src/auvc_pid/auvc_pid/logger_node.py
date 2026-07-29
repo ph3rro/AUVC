@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.serialization import serialize_message, deserialize_message
-from std_msgs.msg import Float64, Int16
+from std_msgs.msg import Float64, Int16, String
 import rosbag2_py
 from rosbag2_py import (
     SequentialWriter, SequentialReader, StorageOptions,
@@ -17,6 +17,7 @@ MSG_TYPE_MAP = {
     'std_msgs/msg/Float64': Float64,
     'std_msgs/msg/Int16': Int16,
     'mavros_msgs/msg/ManualControl': ManualControl,
+    'std_msgs/msg/String': String
 }
 
 
@@ -45,6 +46,7 @@ class LoggerNode(Node):
             '/auv/depth': 'std_msgs/msg/Float64',
             '/auv/heading': 'std_msgs/msg/Int16',
             '/auv/manualControl': 'mavros_msgs/msg/ManualControl',
+            '/auv/fire': 'std_msgs/msg/String'
         }
 
         # Register each topic schema with the bag writer.
@@ -70,6 +72,8 @@ class LoggerNode(Node):
         self.topic_subs['/auv/depth'] = self.create_subscription(Float64,'/current_depth', lambda msg: self.save_message('/auv/depth', msg), 10)
         self.topic_subs['/auv/heading'] = self.create_subscription(Int16,'/heading', lambda msg: self.save_message('/auv/heading', msg), 10)
         self.topic_subs['/auv/manualControl'] = self.create_subscription(ManualControl,'/manual_control', lambda msg: self.save_message('/auv/manualControl', msg), 10)
+        self.topic_subs['/auv/fire'] = self.create_subscription(String,'/fire_control', lambda msg: self.save_message('/auv/fire', msg), 10)
+
         self.get_logger().info('BlueROV Data Recorder initialized for specific telemetry topics.')
 
     def save_message(self, topic_name, msg):

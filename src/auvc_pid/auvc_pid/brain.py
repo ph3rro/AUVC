@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
-from mavros_msgs.msg import ManualControl, OverrideRCIn
-from std_msgs.msg import Float64, Float64MultiArray
+from mavros_msgs.msg import ManualControl
+from std_msgs.msg import Float64, Float64MultiArray, Bool, String
 import time
 from auvc_pid.light_controller import *
 
@@ -22,13 +22,15 @@ class BrainNode(Node):
         self.found_auv = False
 
         self.go_to_heading_value = 0.0
-        
+        self.bearing = 0.0
+
 
         '''self.manual_pub publishes the movements so the auv can read them'''
         self.manual_pub = self.create_publisher(ManualControl, "/manual_control", 10)
+        self.light_pub = self.create_publisher(String, "/fire_control", 10)
         self.lights = LightController(self)
 
-
+        self.yolo_detected_sub = self.create_subscription(Bool, "/yolo_detected", self.yolo_detected_callback, 10)
         self.heave_sub = self.create_subscription(Float64, "/current_heave", self.heave_callback, 10)
         self.angular_sub = self.create_subscription(Float64, "/current_torque", self.angular_callback, 10)
         #self.thrust_sub = self.create_subscription(Float64, "/forward", self.forward_callback, 10)   
@@ -40,8 +42,6 @@ class BrainNode(Node):
         # run loop at 20 hz
         self.timer = self.create_timer(0.05, self.manual_control_publisher)
         
-        #self.get_logger().info(f"approaching depth: {self.target_depth} meters")
-        #self.get_logger().info(f"facing heading: {self.target_heading} degrees")
 
     def heave_callback(self, msg):
         self.z = msg.data
@@ -56,6 +56,9 @@ class BrainNode(Node):
         self.x = msg.data[0]
         self.y = msg.data[1]
 
+    def yolo_detected_callback(self, msg):
+        self.found_auv = msg.data
+
     def circle_callback(self, msg):
         self.y = msg.data[0]
         #self.get_logger().info(f"data[1]: {msg.data[1]}")
@@ -63,11 +66,15 @@ class BrainNode(Node):
 
     def manual_control_publisher(self):
         
-        if (self.found_auv and self.distance <= 1.0):
+        if (not self.fire and (self.found_auv and self.distance <= 1.0)):
+            msg_lights = String()
+            msg_lights.data = "UNDER ONE METER! FIREEEEEEEEEEEEEEE!"
+            self.light_pub.publish(msg_lights)
             self.x = -100
             self.lights.full()
-            self.get_logger().info(f"Within range! FIREEEEEEEEEEE!")
             self.fire = True
+            self.angular = 0.0
+            
 
         elif(self.fire):
             self.fire = False
@@ -76,18 +83,18 @@ class BrainNode(Node):
         
         if(self.start_sequence):
             self.angular = self.go_to_heading_value
+            if(self.elapsed_time >= 5.0):
+                self.x = 2
 
-        if(self.start_sequence and self.elapsed_time >= 5.0):
-            self.x = 25
+        if(self.found_auv and not(self.distance <= 1.0)):
+            self.start_sequence = False
+            self.x = 50.0
+            self.angular = self.bearing
 
-        #if(self.found_auv and not(self.distance <= 1.0)):
-           # self.start_sequence = False
-           # self.x = 50.0
-           # #self.angular = self.weird heading thing that aiden will put in
-        #elif(not self.start_sequence):
-          #  self.x = 0.0
-           # self.y = 0.0
-          #  self.angular = 15
+        elif(not self.start_sequence):
+            self.x = 0.0
+            self.y = 0.0
+            self.angular = 15
         
 
         
@@ -105,7 +112,7 @@ class BrainNode(Node):
         self.elapsed_time += 0.05
 
     def bearing_callback(self, msg):
-        self.angular = msg.data
+        self.bearing = msg.data
 
     def height_callback(self, msg):
         self.z = msg.data

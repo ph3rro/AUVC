@@ -57,7 +57,6 @@ class PublisherNode(Node):
             self.send_neutral_command()
             print("timed out")
             return
-
         # Publish the active step's joystick values
         msg = ManualControl()
 
@@ -79,7 +78,7 @@ class PublisherNode(Node):
         self.angular = msg.data[3]
     '''
     def bearing_callback(self, msg):
-        self.angular = msg.data
+        self.bearing = msg.data
 
     def height_callback(self, msg):
         self.target_relative_height = msg.data
