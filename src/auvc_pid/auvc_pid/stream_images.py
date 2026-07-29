@@ -46,6 +46,7 @@ class VisionNode(Node):
         self.forward_pub = self.create_publisher(Float64, "/forward", 10)
         self.yolo_detected_pub = self.create_publisher(Bool, "/yolo_detected", 10)
         
+
         self.image_size = 256
         self.detector = Detector(families="tag36h11")
         self.latest_detections = []
@@ -54,7 +55,7 @@ class VisionNode(Node):
         self.declare_parameter("yolo_threads", 3)
         self.declare_parameter("yolo_rate", 5.0)
         self.declare_parameter("yolo_conf", 0.25)
-        self.declare_parameter("yolo_pixel_kp", 0.08)
+        self.declare_parameter("yolo_pixel_kp", 0.03)
         self.declare_parameter("yolo_pixel_ki", 0.0)
         self.declare_parameter("yolo_pixel_kd", 0.0)
         self.declare_parameter("yolo_yaw_limit", 80.0)
@@ -87,6 +88,7 @@ class VisionNode(Node):
         # -1 follows whichever tag is closest, otherwise only this id is followed
         self.target_tag_id = int(self.get_parameter("target_tag_id").value)
         self.yolo_detected_timeout = float(self.get_parameter("yolo_detected_timeout").value)
+        self.yolo_detected_time = 1e20
         self.setup_intrinsics()
 
         # leave cores free for yolo and the rest of the stack on the pi
@@ -96,6 +98,8 @@ class VisionNode(Node):
         self.latest_frame = None
         self.latest_boxes = []
         self.using_yolo = USING_YOLO and YOLO_AVAILABLE and bool(self.weights_path)
+        self.current_depth = 0
+
 
         if not USING_YOLO:
             self.get_logger().info("using apriltags for controller targets")
@@ -322,6 +326,7 @@ class VisionNode(Node):
             self.yolo_pixel_kp,
             self.yolo_pixel_ki,
             self.yolo_pixel_kd,
+            p_quadratic=True
         )
         yaw_command = max(-self.yolo_yaw_limit, min(self.yolo_yaw_limit, yaw_command))
         self.bearing_pub.publish(Float64(data=yaw_command))
@@ -336,7 +341,7 @@ class VisionNode(Node):
             self.distance_pub.publish(Float64(data=distance))
             height = -distance * math.sin(pitch)
             self.depth_pub.publish(Float64(data=self.current_depth-height))
-        self.forward_pub.publish(Float64(data=90.0))
+        
 
     def publish_apriltag_target(self, detections):
         # nothing is published while the tag is not in view, so a controller can tell

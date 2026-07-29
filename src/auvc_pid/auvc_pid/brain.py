@@ -16,7 +16,7 @@ class BrainNode(Node):
 
         self.elapsed_time = 0.0
 
-        self.distance = None
+        self.distance = 1e5
         self.fire = False
         self.start_sequence = True
         self.found_auv = False
@@ -44,7 +44,7 @@ class BrainNode(Node):
         # run loop at 20 hz
         self.timer = self.create_timer(0.05, self.manual_control_publisher)
         
-    def distnace_callback(self, msg):
+    def distance_callback(self, msg):
         self.distance = msg.data
 
     def heave_callback(self, msg):
@@ -62,6 +62,8 @@ class BrainNode(Node):
 
     def yolo_detected_callback(self, msg):
         self.found_auv = msg.data
+        if not self.found_auv:
+            self.angular = 0.0
 
     def circle_callback(self, msg):
         self.y = msg.data[0]
@@ -88,11 +90,11 @@ class BrainNode(Node):
         if(self.start_sequence):
             self.angular = self.go_to_heading_value
             if(self.elapsed_time >= 5.0):
-                self.x = 2
+                self.x = 25
 
         if(self.found_auv and not(self.distance <= 1.0)):
             self.start_sequence = False
-            self.x = 50.0
+            self.x = 60.0
             self.angular = self.bearing
 
         elif(not self.start_sequence):

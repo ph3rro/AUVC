@@ -1,9 +1,9 @@
-def run_pid(error, dt, Kp, Ki, Kd):
+def run_pid(error, dt, Kp, Ki, Kd, p_quadratic = False):
     integral = 0
 
     index = len(error) - 1
 
-    P = Kp * error[index]
+    P = Kp * error[index] ** 2 if p_quadratic else Kp * error[index]
     
     for value in error:
         integral += value * dt

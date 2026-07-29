@@ -4,7 +4,6 @@ from sensor_msgs.msg import Imu
 from std_msgs.msg import Float64, Int16
 import time
 from auvc_pid.pid_loop import *
-from auvc_pid.calculate_depth import *
 
 class AngularNode(Node):
     def __init__(self):

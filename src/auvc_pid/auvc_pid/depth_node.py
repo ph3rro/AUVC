@@ -15,7 +15,7 @@ class DepthNode(Node):
         super().__init__('depth_node')
         
         self.latest_pressure = None
-        self.target_depth_range = [1.0, 2.0] #units in meters
+        self.target_depth_range = [0, 1.0] #units in meters
         self.target_depth = abs((self.target_depth_range[1] + self.target_depth_range[0]) / 2)
 
         '''self.manual_pub publishes the movements so the auv can read them'''
