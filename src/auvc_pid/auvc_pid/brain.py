@@ -15,6 +15,7 @@ class BrainNode(Node):
         self.angular = 0.0
 
         self.elapsed_time = 0.0
+        self.latest_fire = 0.0
 
         self.distance = 1e5
         self.fire = False
@@ -80,12 +81,15 @@ class BrainNode(Node):
             self.lights.full()
             self.fire = True
             self.angular = 0.0
+            self.latest_fire = self.time_elapsed
             
 
         elif(self.fire):
-            self.fire = False
-            self.lights.off()
-            self.x = 0.0
+            self.x = -100
+            if (self.time_elapsed - self.latest_fire > 0.2):
+                self.lights.off()
+                self.x = 0
+                self.fire = False
         
         if(self.start_sequence):
             self.angular = self.go_to_heading_value
