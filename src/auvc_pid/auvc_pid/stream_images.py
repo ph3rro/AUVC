@@ -68,7 +68,9 @@ class VisionNode(Node):
         self.yolo_pixel_ki = float(self.get_parameter("yolo_pixel_ki").value)
         self.yolo_pixel_kd = float(self.get_parameter("yolo_pixel_kd").value)
         self.yolo_yaw_limit = float(self.get_parameter("yolo_yaw_limit").value)
-        self.yolo_pixel_errors = []
+        self.yolo_pid_integral = 0.0
+        self.yolo_prev_pixel_error = 0.0
+        self.yolo_current_pixel_error = 0.0
 
         self.declare_parameter("frame_width", 640)
         self.declare_parameter("frame_height", 480)
@@ -314,19 +316,22 @@ class VisionNode(Node):
         class_id, _, x1, y1, x2, y2 = boxes[0]
         target_x = 0.5 * (x1 + x2)
         pixel_error = target_x - (self.image_size / 2.0)
-        self.yolo_pixel_errors.append(pixel_error)
-        self.yolo_pixel_errors = self.yolo_pixel_errors[-200:]
+        self.yolo_prev_pixel_error = self.yolo_current_pixel_error
+        self.yolo_current_pixel_error = pixel_error
 
         # The YOLO controller now works directly in pixels instead of converting
         # the horizontal pixel error to an angle.
         # yaw, _, _, _ = self.pixel_to_angles(target_x, 0.5 * (y1 + y2))
-        yaw_command = run_pid(
-            self.yolo_pixel_errors,
+        self.yolo_pid_integral, yaw_command = run_pid(
+            self.yolo_prev_pixel_error,
+            self.yolo_current_pixel_error,
             self.timer_period,
             self.yolo_pixel_kp,
             self.yolo_pixel_ki,
             self.yolo_pixel_kd,
-            p_quadratic=True
+            0.0,
+            self.yolo_pid_integral,
+            p_quadratic=False
         )
         yaw_command = max(-self.yolo_yaw_limit, min(self.yolo_yaw_limit, yaw_command))
         self.bearing_pub.publish(Float64(data=yaw_command))

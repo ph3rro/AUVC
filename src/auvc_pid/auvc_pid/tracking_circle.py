@@ -23,7 +23,9 @@ class CircularNode(Node):
         self.radius_sub = self.create_subscription(Float64, "/target_radius", self.radius_callback, 10)
         self.heading_sub = self.create_subscription(Int16, "/heading", self.heading_callback, 10)
 
-        self.omega_errors = []
+        self.integral = 0.0
+        self.prev_error = 0.0
+        self.current_error = 0.0
 
         # run loop at 20 hz
         self.timer_period = 0.05
@@ -45,10 +47,16 @@ class CircularNode(Node):
         self.latest_omega = calculate_omega(self.latest_heading, self.previous_heading, self.timer_period)
         #update errors
         omega_error = calculate_omega_error(self.latest_omega, self.target_omega)
-        self.omega_errors.append(omega_error)
+        self.prev_error = self.current_error
+        self.current_error = omega_error
 
         #calculate values
-        yaw = calculate_yaw(self.omega_errors, self.timer_period)
+        self.integral, yaw = calculate_yaw(
+            self.prev_error,
+            self.current_error,
+            self.timer_period,
+            self.integral,
+        )
         sway = 100
 
         #print statements for debugging
@@ -82,13 +90,16 @@ def calculate_omega(current_theta, previous_theta, dt):
 def calculate_omega_error(current_omega, target_omega):
     return target_omega - current_omega
 
-def calculate_yaw(errors, dt):
+def calculate_yaw(prev_error, current_error, dt, integral):
     Kp = 20.0
     Ki = 0.0
     Kd = 0.0
+    Kf = 0.0
 
-    yaw = run_pid(errors, dt, Kp, Ki, Kd)
-    return output_cap(yaw, 300)
+    integral, yaw = run_pid(
+        prev_error, current_error, dt, Kp, Ki, Kd, Kf, integral
+    )
+    return integral, output_cap(yaw, 300)
 
 def output_cap(output, maximum):
     if (abs(output) > maximum):

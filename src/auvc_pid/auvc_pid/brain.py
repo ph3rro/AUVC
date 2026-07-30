@@ -8,7 +8,8 @@ from auvc_pid.light_controller import *
 class BrainNode(Node):
     def __init__(self):
         super().__init__('brain_node')
-        
+        self.declare_parameter("qualifier_mode", True)
+
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
@@ -81,12 +82,12 @@ class BrainNode(Node):
             self.lights.full()
             self.fire = True
             self.angular = 0.0
-            self.latest_fire = self.time_elapsed
+            self.latest_fire = self.elapsed_time
             
 
         elif(self.fire):
             self.x = -100
-            if (self.time_elapsed - self.latest_fire > 0.25):
+            if (self.elapsed_time - self.latest_fire > 0.25):
                 self.lights.off()
                 self.x = 0
                 self.fire = False

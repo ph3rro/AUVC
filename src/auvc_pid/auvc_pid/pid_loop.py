@@ -1,19 +1,24 @@
-def run_pid(error, dt, Kp, Ki, Kd, p_quadratic = False):
-    integral = 0
-
-    index = len(error) - 1
-
-    P = Kp * error[index] ** 2 if p_quadratic else Kp * error[index]
+def run_pid(prev_error, current_error, dt, Kp, Ki, Kd, Kf, integral, p_quadratic = False):
     
-    for value in error:
-        integral += value * dt
+    #index = len(error) - 1
+
+    #i f len(error) < 0: # if the error list is empty after new target depth is set return feedforward (to hover ideally)
+    #    return Kf
+
+    #P = Kp * error[index] ** 2 if p_quadratic else Kp * error[index]
+    P = Kp * current_error * abs(current_error) if p_quadratic else Kp * current_error
+
+    integral += current_error * dt
+
     I = Ki * integral
 
-
-    if index == 0:
-        D = 0
-    else:
-        D = Kd * ((error[index] - error[index - 1]) / dt)
+    D = Kd * ((current_error - prev_error) / dt)
 
 
-    return P + I + D
+    # if index == 0:
+    #     D = 0
+    # else:
+    #     D = Kd * ((error[index] - error[index - 1]) / dt)
+
+
+    return (integral, P + I + D + Kf)

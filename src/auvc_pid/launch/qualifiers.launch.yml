@@ -1,0 +1,63 @@
+launch:
+
+  - arg:
+      name: "qualifiers"
+      default: "platform_six_and_three_quarters"
+      description: "Name of the output bag directory"
+
+  - arg:
+      name: "target_depth"
+      default: "0.5"
+      description: "Target depth in meters"
+
+  - arg:
+      name: "target_heading"
+      default: "0.0"
+      description: "Target heading in degrees"
+
+  # Your vehicle's nodes go here
+  - node:
+      pkg: "rosmav"
+      exec: "bluerov2_hardware_interface"
+      name: "bluerov2_hardware_interface"
+      namespace: ""
+
+  - node:
+      pkg: "auvc_pid"
+      exec: "publisher_node"
+      name: "publisher_node"
+      namespace: ""
+
+  - node:
+      pkg: "auvc_pid"
+      exec: "depth_node"
+      name: "depth_node"
+      namespace: ""
+
+  - node:
+      pkg: "auvc_pid"
+      exec: "angular_pid"
+      name: "angular_pid"
+      namespace: ""
+
+  - timer:
+      period: 5.0
+      children: #claude gave me this if theres any errors delete this maybe
+      - executable:
+          cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
+          name: "arm_auv"
+          output: "screen"
+      - executable:
+          cmd: 'ros2 topic pub --once /target_depth std_msgs/msg/Float64 {\"data\":$(var target_depth)}'
+          name: "set_target_depth"
+          output: "screen"
+      - executable:
+          cmd: 'ros2 topic pub --once /target_heading std_msgs/msg/Float64 {\"data\":$(var target_heading)}'
+          name: "set_target_heading"
+          output: "screen"
+    
+  # Record only the topics we care about
+  # - executable:
+  #     cmd: "ros2 bag qualifiers -s mcap -o $(var qualifiers) /current_heave /current_depth /target_depth /target_heading"
+  #     output: "screen"
+  #     if: "$(var qualifiers)"
