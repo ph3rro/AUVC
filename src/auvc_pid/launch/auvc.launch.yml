@@ -1,65 +1,68 @@
 launch:
-- node:
-    pkg: "rosmav"
-    exec: "bluerov2_hardware_interface"
-    name: "bluerov2_hardware_interface"
-    namespace: ""
+  # Toggle recording on/off from the command line
+  - arg:
+      name: "record"
+      default: "false"
+      description: "Record sensor topics to a rosbag"
 
-- node:
-    pkg: "rosmav"
-    exec: "bluerov2_camera_interface"
-    name: "bluerov2_camera_interface"
-    namespace: ""
+  - arg:
+      name: "final_challenge"
+      default: "platform_six_and_three_quarters"
+      description: "Name of the output bag directory"
 
-- node:
-    pkg: "auvc_pid"
-    exec: "brain"
-    name: "auvc_pid_brain"
-    namespace: ""
+  # Your vehicle's nodes go here
+  - node:
+      pkg: "rosmav"
+      exec: "bluerov2_hardware_interface"
+      name: "bluerov2_hardware_interface"
+      namespace: ""
 
+  - node:
+      pkg: "rosmav"
+      exec: "bluerov2_camera_interface"
+      name: "bluerov2_camera_interface"
+      namespace: ""
 
+  - node:
+      pkg: "auvc_pid"
+      exec: "brain"
+      name: "auvc_pid_brain"
+      namespace: ""
 
+  - node:
+      pkg: "auvc_pid"
+      exec: "depth_node"
+      name: "depth_node"
+      namespace: ""
 
+  - node:
+      pkg: "auvc_pid"
+      exec: "angular_pid"
+      name: "angular_pid"
+      namespace: ""
 
+  - node:
+      pkg: "auvc_pid"
+      exec: "stream_images"
+      name: "stream_images"
+      namespace: ""
 
-- node:
-    pkg: "auvc_pid"
-    exec: "depth_node"
-    name: "depth_node"
-    namespace: ""
+  - timer:
+      period: 5.0
+      children: #claude gave me this if theres any errors delete this maybe
+      - executable:
+          cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
+          name: "arm_auv"
+          output: "screen"
+          #uh idk if this works
+    
+  # Record only the topics we care about
+  - executable:
+      cmd: "ros2 bag record -s mcap -o $(var final_challenge) /imu/data /cmd_vel /rtfm"
+      output: "screen"
+      if: "$(var record)"
 
-
-
-
-
-
-- node:
-    pkg: "auvc_pid"
-    exec: "angular_pid"
-    name: "angular_pid"
-    namespace: ""
-
-
-- node:
-    pkg: "auvc_pid"
-    exec: "stream_images"
-    name: "stream_images"
-    namespace: ""
-
-- node:
-    pkg: "auvc_pid"
-    exec: "logger_node"
-    name: "logger_node"
-    namespace: ""
-
-- timer:
-    period: 5.0
-    children: #claude gave me this if theres any errors delete this maybe
-    - executable:
-        cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
-        name: "arm_auv"
-        output: "screen"
-        #uh idk if this works
+-
 
 #- node:
 #    pkg: "auvc_pid"
