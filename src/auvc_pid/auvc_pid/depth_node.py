@@ -53,10 +53,10 @@ class DepthNode(Node):
         return output
 
     def calculate_heave(self, dt):
-        Kp = 4
-        Ki = 0.05
-        Kd = 2
-        Kf = 0
+        Kp = 3.0
+        Ki = 0.0
+        Kd = 0
+        Kf = 0.62
 
         multiplier = 25.0
         self.integral, pid_raw = run_pid(self.prev_error, self.current_error, dt, Kp, Ki, Kd, Kf, self.integral)

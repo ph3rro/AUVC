@@ -56,10 +56,10 @@ class PublisherNode(Node):
         # Publish the active step's joystick values
         msg = ManualControl()
 
-        self.get_logger().info(f"Y: {self.y}")
+        #self.get_logger().info(f"Y: {self.y}")
         self.get_logger().info(f"R: {self.angular}")
-        #msg.x = float(self.x)
-        msg.x = 40.0
+        msg.x = float(self.x)
+        #msg.x = 0.0
         msg.y = float(self.y)
         msg.z = float(self.z)
         msg.r = float(self.angular)

@@ -20,9 +20,14 @@ class AngularNode(Node):
 
         # testing heading control for qualifiers
         self.target_heading_sub = self.create_subscription(Float64, '/target_heading', self.target_heading_callback, 10)
-        self.imu_sub = self.create_subscription(Imu, "/imu", self.imu_callback, 10)
+        # self.imu_sub = self.create_subscription(Imu, "/imu", self.imu_callback, 10)
         self.heading_sub = self.create_subscription(Int16, "/heading", self.heading_callback, 10)        
+<<<<<<< Updated upstream
         
+=======
+        # self.theta_sub = self.create_subscription(Int16, "/target_theta", self.theta_callback, 10)    
+
+>>>>>>> Stashed changes
         self.integral = 0.0
         self.prev_error = 0.0
         self.current_error = 0.0
@@ -33,18 +38,18 @@ class AngularNode(Node):
         
         self.get_logger().info(f"Turning to heading: {self.target_heading} degrees")
 
-    def imu_callback(self, msg):
-        self.latest_angular_velocity = msg.angular_velocity.z
+    # def imu_callback(self, msg):
+    #     self.latest_angular_velocity = msg.angular_velocity.z
         
     def heading_callback(self, msg):
         self.latest_heading = msg.data
     
-    def theta_callback(self, msg):
+    '''def theta_callback(self, msg):
         if msg.data != self.target_heading:
             self.integral = 0.0
             self.prev_error = 0.0
             self.current_error = 0.0
-        self.target_heading = msg.data
+        self.target_heading = msg.data'''
 
     def target_heading_callback(self, msg):
         if msg.data != self.target_heading:
@@ -99,9 +104,9 @@ def calculate_minimum_heading_error(current_heading, target_heading):
 
 
 def calculate_yaw(prev_error, current_error, dt, angular_velocity, integral):
-    Kp = 2
+    Kp = 2.0
     Ki = 0.0
-    Kd = 0.0
+    Kd = 0.2
     Kf = 0.0
     multiplier = 1
 

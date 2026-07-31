@@ -5,10 +5,10 @@ launch:
       default: "true"
       description: "Whether to record a bag file (true/false)"
 
-  - arg:
-      name: "qualifiers"
-      default: "platform_six_and_three_quarters"
-      description: "Name of the output bag directory"
+  # - arg:
+  #     name: "qualifiers"
+  #     default: "platform_six_and_three_quarters"
+  #     description: "Name of the output bag directory"
 
   - arg:
       name: "target_depth"
@@ -19,6 +19,11 @@ launch:
       name: "target_heading"
       default: "170.0"
       description: "Target heading in degrees"
+    
+  - arg:
+      name: "target_forward_speed"
+      default: "0.0"
+      description: "Target forward speed in m/s"
 
   # Your vehicle's nodes go here
   - node:
@@ -50,14 +55,25 @@ launch:
       name: "arm_auv"
       output: "screen"
   - executable:
-      cmd: 'ros2 topic pub --once /target_depth std_msgs/msg/Float64 "{data: "$(var target_depth)"}"'
+      cmd: 'ros2 topic pub /target_depth std_msgs/msg/Float64 "{data: "$(var target_depth)"}"'
       name: "set_target_depth"
       output: "screen"
   - executable:
-      cmd: 'ros2 topic pub --once /target_heading std_msgs/msg/Float64 "{data: "$(var target_heading)"}"'
+      cmd: 'ros2 topic pub /target_heading std_msgs/msg/Float64 "{data: "$(var target_heading)"}"'
       name: "set_target_heading"
       output: "screen"
+  - executable:
+      cmd: 'ros2 topic pub /forward std_msgs/msg/Float64 "{data: "$(var target_forward_speed)"}"'
+      name: "set_target_forward_speed"
+      output: "screen"
+
   - executable:
       cmd: "ros2 bag record -s mcap -o $(var qualifiers) --topics /heading /current_depth /manual_control"
       output: "screen"
       if: "$(var record)"
+    
+  # Record only the topics we care about
+  # - executable:
+  #     cmd: "ros2 bag qualifiers -s mcap -o $(var qualifiers) /current_heave /current_depth /target_depth /target_heading"
+  #     output: "screen"
+  #     if: "$(var qualifiers)"

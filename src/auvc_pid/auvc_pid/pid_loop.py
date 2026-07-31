@@ -20,5 +20,5 @@ def run_pid(prev_error, current_error, dt, Kp, Ki, Kd, Kf, integral, p_quadratic
     # else:
     #     D = Kd * ((error[index] - error[index - 1]) / dt)
 
-
+    #print(f"P: {P}, I: {I}, D: {D}, Kf: {Kf}")
     return (integral, P + I + D + Kf)
