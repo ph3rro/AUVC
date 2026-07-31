@@ -22,8 +22,7 @@ class AngularNode(Node):
         self.target_heading_sub = self.create_subscription(Float64, '/target_heading', self.target_heading_callback, 10)
         self.imu_sub = self.create_subscription(Imu, "/imu", self.imu_callback, 10)
         self.heading_sub = self.create_subscription(Int16, "/heading", self.heading_callback, 10)        
-        self.theta_sub = self.create_subscription(Int16, "/target_theta", self.theta_callback, 10)    
-
+        
         self.integral = 0.0
         self.prev_error = 0.0
         self.current_error = 0.0
