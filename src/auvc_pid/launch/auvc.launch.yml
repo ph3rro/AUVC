@@ -2,13 +2,18 @@ launch:
   # Toggle recording on/off from the command line
   - arg:
       name: "record"
-      default: "false"
-      description: "Record sensor topics to a rosbag"
+      default: "true"
+      description: "Whether to record a bag file (true/false)"
 
   - arg:
       name: "final_challenge"
       default: "platform_six_and_three_quarters"
       description: "Name of the output bag directory"
+
+  - arg:
+      name: "target_depth"
+      default: "2.5"
+      description: "Target depth in meters"
 
   # Your vehicle's nodes go here
   - node:
@@ -26,7 +31,7 @@ launch:
   - node:
       pkg: "auvc_pid"
       exec: "brain"
-      name: "auvc_pid_brain"
+      name: "brain"
       namespace: ""
 
   - node:
@@ -47,33 +52,14 @@ launch:
       name: "stream_images"
       namespace: ""
 
-  - timer:
-      period: 5.0
-      children: #claude gave me this if theres any errors delete this maybe
-      - executable:
-          cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
-          name: "arm_auv"
-          output: "screen"
-          #uh idk if this works
-    
-  # Record only the topics we care about
   - executable:
-      cmd: "ros2 bag record -s mcap -o $(var final_challenge) /imu/data /cmd_vel /rtfm"
+      cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
+      name: "arm_auv"
+      output: "screen"
+    
+  - executable:
+      cmd: "ros2 bag record -s mcap -o $(var qualifiers) --topics /heading /current_depth /manual_control /yolo_detected /distance /fire_control"
       output: "screen"
       if: "$(var record)"
-
--
-
-#- node:
-#    pkg: "auvc_pid"
-#    exec: "line_node"
-#    name: "line_node"
-#    namespace: ""
-
-#- node:
- #   pkg: "auvc_pid"
- #   exec: "tracking_circle"
- #   name: "tracking_circle"
- #   namespace: ""
 
 

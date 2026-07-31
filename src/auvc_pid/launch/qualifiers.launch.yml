@@ -1,4 +1,9 @@
 launch:
+  # Toggle recording on/off from the command line
+  - arg:
+      name: "record"
+      default: "true"
+      description: "Whether to record a bag file (true/false)"
 
   - arg:
       name: "qualifiers"
@@ -7,12 +12,12 @@ launch:
 
   - arg:
       name: "target_depth"
-      default: "0.5"
+      default: "2.5"
       description: "Target depth in meters"
 
   - arg:
       name: "target_heading"
-      default: "0.0"
+      default: "170.0"
       description: "Target heading in degrees"
 
   # Your vehicle's nodes go here
@@ -40,24 +45,19 @@ launch:
       name: "angular_pid"
       namespace: ""
 
-  - timer:
-      period: 5.0
-      children: #claude gave me this if theres any errors delete this maybe
-      - executable:
-          cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
-          name: "arm_auv"
-          output: "screen"
-      - executable:
-          cmd: 'ros2 topic pub --once /target_depth std_msgs/msg/Float64 {\"data\":$(var target_depth)}'
-          name: "set_target_depth"
-          output: "screen"
-      - executable:
-          cmd: 'ros2 topic pub --once /target_heading std_msgs/msg/Float64 {\"data\":$(var target_heading)}'
-          name: "set_target_heading"
-          output: "screen"
-    
-  # Record only the topics we care about
-  # - executable:
-  #     cmd: "ros2 bag qualifiers -s mcap -o $(var qualifiers) /current_heave /current_depth /target_depth /target_heading"
-  #     output: "screen"
-  #     if: "$(var qualifiers)"
+  - executable:
+      cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
+      name: "arm_auv"
+      output: "screen"
+  - executable:
+      cmd: 'ros2 topic pub --once /target_depth std_msgs/msg/Float64 "{data: "$(var target_depth)"}"'
+      name: "set_target_depth"
+      output: "screen"
+  - executable:
+      cmd: 'ros2 topic pub --once /target_heading std_msgs/msg/Float64 "{data: "$(var target_heading)"}"'
+      name: "set_target_heading"
+      output: "screen"
+  - executable:
+      cmd: "ros2 bag record -s mcap -o $(var qualifiers) --topics /heading /current_depth /manual_control"
+      output: "screen"
+      if: "$(var record)"
