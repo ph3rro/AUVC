@@ -58,7 +58,7 @@ launch:
       output: "screen"
     
   - executable:
-      cmd: "ros2 bag record -s mcap -o $(var qualifiers) --topics /heading /current_depth /manual_control /yolo_detected /distance /fire_control"
+      cmd: "ros2 bag record -s mcap -o $(var final_challenge) --topics /heading /current_depth /manual_control /yolo_detected /distance /fire_control"
       output: "screen"
       if: "$(var record)"
 

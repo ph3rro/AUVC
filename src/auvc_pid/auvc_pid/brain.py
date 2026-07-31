@@ -94,7 +94,7 @@ class BrainNode(Node):
         
         if(self.start_sequence and not self.fire):
             self.angular = self.go_to_heading_value
-            if(self.elapsed_time >= 3.0):
+            if(self.elapsed_time >= 4.0):
                 self.x = 25
 
         if(self.found_auv and not(self.distance <= 1.0)):

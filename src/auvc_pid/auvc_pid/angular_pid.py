@@ -11,7 +11,7 @@ class AngularNode(Node):
         
         #all heading units are in degrees
         self.latest_heading = None
-        self.target_heading = None 
+        self.target_heading = None
         self.latest_angular_velocity = 0.0
         self.set_target_heading = False
 
