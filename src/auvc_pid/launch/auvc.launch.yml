@@ -53,12 +53,17 @@ launch:
       namespace: ""
 
   - executable:
+      cmd: 'ros2 topic pub /target_depth std_msgs/msg/Float64 "{data: "$(var target_depth)"}"'
+      name: "set_target_depth"
+      output: "screen"
+
+  - executable:
       cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
       name: "arm_auv"
       output: "screen"
     
   - executable:
-      cmd: "ros2 bag record -s mcap -o $(var final_challenge) --topics /heading /current_depth /manual_control /yolo_detected /distance /fire_control"
+      cmd: "ros2 bag record -s mcap -o $(var final_challenge) --topics /heading /current_depth /manual_control /yolo_detected /distance /april_distance /fire_control"
       output: "screen"
       if: "$(var record)"
 

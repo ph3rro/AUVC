@@ -22,15 +22,11 @@ class AngularNode(Node):
         self.target_heading_sub = self.create_subscription(Float64, '/target_heading', self.target_heading_callback, 10)
         # self.imu_sub = self.create_subscription(Imu, "/imu", self.imu_callback, 10)
         self.heading_sub = self.create_subscription(Int16, "/heading", self.heading_callback, 10)        
-<<<<<<< Updated upstream
         
-=======
-        # self.theta_sub = self.create_subscription(Int16, "/target_theta", self.theta_callback, 10)    
-
->>>>>>> Stashed changes
         self.integral = 0.0
         self.prev_error = 0.0
         self.current_error = 0.0
+        self.pid_initialized = False
 
         # run loop at 20 hz
         self.timer_period = 0.05
@@ -56,6 +52,7 @@ class AngularNode(Node):
             self.integral = 0.0
             self.prev_error = 0.0
             self.current_error = 0.0
+            self.pid_initialized = False
         self.target_heading = msg.data
 
 
@@ -65,8 +62,13 @@ class AngularNode(Node):
         if (self.target_heading is None):
             self.target_heading = calculate_target_heading(self.latest_heading)
         error = calculate_minimum_heading_error(self.latest_heading, self.target_heading)
-        self.prev_error = self.current_error
-        self.current_error = error
+        if not self.pid_initialized:
+            self.prev_error = error
+            self.current_error = error
+            self.pid_initialized = True
+        else:
+            self.prev_error = self.current_error
+            self.current_error = error
         
         self.integral, yaw = calculate_yaw(
             self.prev_error,
@@ -104,9 +106,12 @@ def calculate_minimum_heading_error(current_heading, target_heading):
 
 
 def calculate_yaw(prev_error, current_error, dt, angular_velocity, integral):
-    Kp = 2.0
+    Kp = 0.2
+
+
+
     Ki = 0.0
-    Kd = 0.2
+    Kd = 0.0
     Kf = 0.0
     multiplier = 1
 
@@ -114,14 +119,14 @@ def calculate_yaw(prev_error, current_error, dt, angular_velocity, integral):
         prev_error, current_error, dt, Kp, Ki, Kd, Kf, integral
     )
 
-    pid_final = pid_PI + (Kd * angular_velocity)
+    pid_final = pid_PI # + (Kd * angular_velocity)
     yaw = pid_final * multiplier
 
-    if (abs(yaw) > 300.0):
+    if (abs(yaw) > 200.0):
         if (yaw > 0):
-            return integral, 300.0
+            return integral, 200.0
         else:
-            return integral, -300.0
+            return integral, -200.0
 
     return integral, yaw
 

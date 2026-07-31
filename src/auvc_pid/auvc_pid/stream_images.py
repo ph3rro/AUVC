@@ -45,6 +45,7 @@ class VisionNode(Node):
         self.pressure_sub = self.create_subscription(FluidPressure, "/pressure", self.calculate_depth, 10)
         self.forward_pub = self.create_publisher(Float64, "/forward", 10)
         self.yolo_detected_pub = self.create_publisher(Bool, "/yolo_detected", 10)
+        self.april_distance_pub = self.create_publisher(Float64, "/april_distance", 10)
         
 
         self.image_size = 256
@@ -208,18 +209,15 @@ class VisionNode(Node):
         square = arr[row:row + side, col:col + side]
         resized = cv2.resize(square, (self.image_size, self.image_size), interpolation=cv2.INTER_AREA)
 
-        if not self.using_yolo:
-            gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-            # four known corners and a known edge length give a far better range than any
-            # box height guess, so solve the tag pose outright wherever a tag is visible
-            self.latest_detections = self.detector.detect(
-                gray,
-                estimate_tag_pose=True,
-                camera_params=(self.fx, self.fy, self.cx, self.cy),
-                tag_size=self.tag_size,
-            )
-        else:
-            self.latest_detections = []
+        gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+        # four known corners and a known edge length give a far better range than any
+        # box height guess, so solve the tag pose outright wherever a tag is visible
+        self.latest_detections = self.detector.detect(
+            gray,
+            estimate_tag_pose=True,
+            camera_params=(self.fx, self.fy, self.cx, self.cy),
+            tag_size=self.tag_size,
+        )
 
         with self.frame_lock:
             self.latest_frame = resized
@@ -304,10 +302,10 @@ class VisionNode(Node):
             msg.data.extend([class_id, conf, x1, y1, x2, y2, yaw, pitch, distance])
 
         self.pose_pub.publish(msg)
-        if self.using_yolo:
-            self.publish_yolo_target(boxes)
-        else:
-            self.publish_apriltag_target(detections)
+        #if self.using_yolo:
+        self.publish_yolo_target(boxes)
+        
+        self.publish_apriltag_target(detections)
 
     def publish_yolo_target(self, boxes):
         if not boxes:
@@ -355,20 +353,20 @@ class VisionNode(Node):
         if tag is None:
             return
 
-        cx, cy = tag.center
-        yaw, _, _, _ = self.pixel_to_angles(cx, cy)
-        self.bearing_pub.publish(Float64(data=math.degrees(yaw)))
+        #cx, cy = tag.center
+        #yaw, _, _, _ = self.pixel_to_angles(cx, cy)
+        #self.bearing_pub.publish(Float64(data=math.degrees(yaw)))
 
         if tag.pose_t is None:
             return
 
         distance = self.tag_range(tag)
-        self.distance_pub.publish(Float64(data=distance))
+        self.april_distance_pub.publish(Float64(data=distance))
 
-        # the tag frame is x right, y down, z forward, so negating y gives a height
-        # where positive means the tag sits above the camera
-        height = -float(np.asarray(tag.pose_t).reshape(3)[1])
-        self.depth_pub.publish(Float64(data=self.current_depth-height))
+        # # the tag frame is x right, y down, z forward, so negating y gives a height
+        # # where positive means the tag sits above the camera
+        # height = -float(np.asarray(tag.pose_t).reshape(3)[1])
+        # self.depth_pub.publish(Float64(data=self.current_depth-height))
         
 
 

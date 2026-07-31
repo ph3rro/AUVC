@@ -5,10 +5,10 @@ launch:
       default: "true"
       description: "Whether to record a bag file (true/false)"
 
-  # - arg:
-  #     name: "qualifiers"
-  #     default: "platform_six_and_three_quarters"
-  #     description: "Name of the output bag directory"
+  - arg:
+      name: "qualifiers"
+      default: "platform_six_and_three_quarters_2"
+      description: "Name of the output bag directory"
 
   - arg:
       name: "target_depth"
@@ -54,6 +54,7 @@ launch:
       cmd: 'ros2 service call /arming std_srvs/srv/SetBool "{data: true}"'
       name: "arm_auv"
       output: "screen"
+      
   - executable:
       cmd: 'ros2 topic pub /target_depth std_msgs/msg/Float64 "{data: "$(var target_depth)"}"'
       name: "set_target_depth"

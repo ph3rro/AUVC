@@ -19,6 +19,7 @@ class BrainNode(Node):
         self.latest_fire = 0.0
 
         self.distance = 1e5
+        self.april_distance = 1e5
         self.fire = False
         self.start_sequence = True
         self.found_auv = False
@@ -40,14 +41,17 @@ class BrainNode(Node):
         self.line_sub = self.create_subscription(Float64MultiArray, "/line_commands", self.line_callback, 10)
         #self.pose_sub = self.create_subscription(Float64MultiArray, "/pose", self.pose_callback, 10)
         self.bearing_sub = self.create_subscription(Float64, "/target_bearing", self.bearing_callback, 10)
-        self.height_sub = self.create_subscription(Float64, "/target_height", self.height_callback, 10)
+        self.height_sub = self.create_subscription(Float64, "/target_depth", self.height_callback, 10)
         self.distance_sub = self.create_subscription(Float64, "/distance", self.distance_callback, 10)
-
+        self.april_distance_sub = self.create_subscription(Float64, "/april_distance", self.april_distance_callback, 10)
         # run loop at 20 hz
         self.timer = self.create_timer(0.05, self.manual_control_publisher)
         
     def distance_callback(self, msg):
         self.distance = msg.data
+
+    def april_distance_callback(self, msg):
+        self.april_distance = msg.data
 
     def heave_callback(self, msg):
         self.z = msg.data
@@ -74,7 +78,7 @@ class BrainNode(Node):
 
     def manual_control_publisher(self):
         
-        if (not self.fire and (self.found_auv and self.distance <= 1.0)):
+        if (not self.fire and (self.found_auv and (self.distance <= 1.0 or self.april_distance <= 1.0))):
             msg_lights = String()
             msg_lights.data = "UNDER ONE METER! FIREEEEEEEEEEEEEEE!"
             self.light_pub.publish(msg_lights)

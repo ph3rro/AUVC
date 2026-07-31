@@ -12,7 +12,16 @@ def run_pid(prev_error, current_error, dt, Kp, Ki, Kd, Kf, integral, p_quadratic
 
     I = Ki * integral
 
-    D = Kd * ((current_error - prev_error) / dt)
+    if abs(I) > 30.0:
+        if (I> 0):
+            I = 30.0
+        else:
+            I = -30.0
+
+    if dt <= 0:
+        D = 0
+    else:
+        D = Kd * ((current_error - prev_error) / dt)
 
 
     # if index == 0:
